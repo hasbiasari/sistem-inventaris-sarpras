@@ -1,0 +1,259 @@
+/* SIDEBAR */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--border-warna);
+}
+
+.sidebar-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.sidebar-title {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--hijau-utama);
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 12px 8px;
+    overflow-y: auto;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    margin: 0 auto 8px;
+    width: 88%;
+    max-width: 200px;
+    border-radius: 12px;
+    color: var(--teks-utama);
+    text-decoration: none;
+    font-size: 0.88rem;
+    position: relative;
+}
+
+.sidebar-link:hover {
+    background-color: var(--bg-body);
+    color: var(--hijau-utama);
+    text-decoration: none;
+}
+
+/* signature element: bentuk lengkung buat nandain menu aktif, diambil dari motif logo */
+.sidebar-link.active {
+    background-color: var(--hijau-utama);
+    color: #fff;
+}
+
+.sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 20px;
+    background-color: var(--hijau-terang);
+    border-radius: 0 12px 12px 0;
+}
+
+.sidebar-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.sidebar-footer {
+    padding: 10px 12px 14px;
+    border-top: 1px solid var(--border-warna);
+}
+
+.sidebar-footer-button {
+    width: 88%;
+    max-width: 200px;
+    margin: 0 auto 8px;
+    border-radius: 12px;
+}
+
+.sidebar-footer-button:last-child {
+    margin-bottom: 0;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+}
+
+.app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-warna);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-page-header {
+    position: sticky;
+    top: 56px;
+    z-index: 14;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-warna);
+    margin-bottom: 0;
+    padding: 18px 0 12px;
+}
+
+.app-page-header .max-w-7xl {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.btn-toggle-sidebar {
+    background: none;
+    border: 1px solid var(--border-warna);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--teks-utama);
+}
+
+.page-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.page-toolbar .toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.page-toolbar .toolbar-search {
+    width: 100%;
+    max-width: 420px;
+}
+
+.page-toolbar .toolbar-search .input-group {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .page-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-toolbar .toolbar-search {
+        max-width: 100%;
+    }
+}
+
+.app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border-warna);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, transform 0.3s ease;
+    flex-shrink: 0;
+    overflow-y: auto;
+    z-index: 30;
+}
+
+.app-sidebar.collapsed {
+    width: 64px;
+}
+
+.app-sidebar.collapsed .sidebar-title,
+.app-sidebar.collapsed .sidebar-text {
+    display: none;
+}
+
+.app-sidebar.collapsed ~ .app-main {
+    margin-left: 64px;
+}
+
+.app-sidebar ~ .app-main {
+    margin-left: 220px;
+}
+
+@media (max-width: 768px) {
+    .app-sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-warna);
+    }
+
+    .app-sidebar.collapsed {
+        width: 100%;
+    }
+
+    .app-sidebar ~ .app-main {
+        margin-left: 0;
+    }
+}
+
+.app-footer {
+    position: fixed;
+    left: 220px;
+    width: calc(100% - 220px);
+    bottom: 0;
+    z-index: 20;
+    text-align: center;
+    padding: 12px 20px;
+    font-size: 0.8rem;
+    color: var(--teks-utama);
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-warna);
+    box-shadow: 0 -1px 18px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+    .app-footer {
+        left: 0;
+        width: 100%;
+    }
+}
+
+.app-footer a {
+    color: var(--hijau-utama);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.app-footer a:hover {
+    text-decoration: underline;
+}

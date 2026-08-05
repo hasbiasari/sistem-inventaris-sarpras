@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(curl -s -c /tmp/cj_final.txt -b /tmp/cj_final.txt -o /tmp/booking2.html http://localhost/sistem-inventaris-sarpras/public/admin/booking-eksternal)",
+      "Read(//tmp/**)",
+      "Bash(php -r ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"http://localhost/sistem-inventaris-sarpras/public/css/mazer-green-theme.css\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost/sistem-inventaris-sarpras/public/css/mazer-green-theme.css\")"
+    ]
+  }
+}

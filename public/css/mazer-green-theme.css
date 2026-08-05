@@ -1,0 +1,390 @@
+/*
+ * Override warna Mazer (biru default) -> hijau STT Cipasung (#0F6B4C).
+ * File ini dimuat SETELAH css/mazer/main/app.css & app-dark.css, tanpa compile ulang SCSS.
+ * Banyak komponen Bootstrap 5 di Mazer menyimpan warna sebagai CSS variable per-komponen
+ * (bukan cuma satu variabel global), jadi beberapa selector di bawah ini sengaja
+ * ditulis dobel: versi biasa (mode terang) + versi "body.theme-dark ..." (mode gelap),
+ * supaya kedua tema tetap konsisten hijau.
+ */
+
+:root,
+body.theme-dark {
+    --bs-primary: #0F6B4C;
+    --bs-primary-rgb: 15, 107, 76;
+    --bs-link-color: #0F6B4C;
+    --bs-link-color-rgb: 15, 107, 76;
+    --bs-link-hover-color: #0c5a40;
+    --bs-link-hover-color-rgb: 12, 90, 64;
+}
+
+/* Judul (h1-h6) bawaan Mazer warnanya biru navy (#25396f) di mode terang -> ganti jadi item netral.
+   Mode gelap gak disentuh karena Mazer sendiri udah bikin h1-h6 putih di sana (body.theme-dark h6, dst). */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    color: #212529;
+}
+
+/* Tombol solid */
+.btn-primary,
+body.theme-dark .btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #0F6B4C;
+    --bs-btn-border-color: #0F6B4C;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #0c5a40;
+    --bs-btn-hover-border-color: #0a4934;
+    --bs-btn-focus-shadow-rgb: 15, 107, 76;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0a4934;
+    --bs-btn-active-border-color: #093f2c;
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #0F6B4C;
+    --bs-btn-disabled-border-color: #0F6B4C;
+}
+
+/* Tombol outline */
+.btn-outline-primary,
+body.theme-dark .btn-outline-primary {
+    --bs-btn-color: #0F6B4C;
+    --bs-btn-border-color: #0F6B4C;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #0F6B4C;
+    --bs-btn-hover-border-color: #0F6B4C;
+    --bs-btn-focus-shadow-rgb: 15, 107, 76;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0F6B4C;
+    --bs-btn-active-border-color: #0F6B4C;
+    --bs-btn-disabled-color: #0F6B4C;
+    --bs-btn-disabled-border-color: #0F6B4C;
+}
+
+/* Switch / checkbox aktif (termasuk toggle dark mode di sidebar) */
+.form-check-input:checked,
+body.theme-dark .form-check-input:checked {
+    background-color: #0F6B4C;
+    border-color: #0F6B4C;
+}
+
+.form-check-input:focus {
+    border-color: #6cae94;
+    box-shadow: 0 0 0 .25rem rgba(15, 107, 76, .25);
+}
+
+/* Fokus input teks */
+.form-control:focus,
+.form-select:focus {
+    border-color: #6cae94;
+    box-shadow: 0 0 0 .25rem rgba(15, 107, 76, .25);
+}
+
+/* Menu aktif di sidebar (selector aslinya .sidebar-wrapper .menu .sidebar-item.active>.sidebar-link
+   sengaja ditulis lengkap + !important, soalnya spesifisitasnya tinggi & selalu menang lawan versi pendek) */
+.sidebar-wrapper .menu .sidebar-item.active > .sidebar-link {
+    background-color: #0F6B4C !important;
+}
+
+/* Pagination aktif (dipakai DataTables) */
+.page-item.active .page-link {
+    background-color: #0F6B4C;
+    border-color: #0F6B4C;
+    box-shadow: 0 2px 5px rgba(15, 107, 76, .3);
+}
+
+/* Komponen yang set variabelnya sendiri per-selector */
+.list-group,
+body.theme-dark .list-group {
+    --bs-list-group-active-bg: #0F6B4C;
+    --bs-list-group-active-border-color: #0F6B4C;
+}
+
+.dropdown-menu,
+body.theme-dark .dropdown-menu {
+    --bs-dropdown-link-active-bg: #0F6B4C;
+}
+
+.nav-pills,
+body.theme-dark .nav-pills {
+    --bs-nav-pills-link-active-bg: #0F6B4C;
+}
+
+.nav-pills .nav-link.active {
+    box-shadow: 0 2px 10px rgba(15, 107, 76, .5);
+}
+
+/* ===== Logo & nama aplikasi di header sidebar (elemen baru, bukan bawaan Mazer) ===== */
+.sidebar-header {
+    padding-top: 1.25rem;
+}
+
+/* selector lengkap + !important: Mazer punya aturan ".sidebar-wrapper .sidebar-header img{height:1.2rem}"
+   dan ".logo img{height:20px}" yang spesifisitasnya lebih tinggi dari class biasa, jadi override
+   ukurannya selalu kalah kalau cuma pakai .sidebar-brand-logo saja */
+.sidebar-wrapper .sidebar-header .logo img.sidebar-brand-logo {
+    flex-shrink: 0;
+    height: 56px !important;
+    object-fit: contain;
+    width: 56px !important;
+}
+
+.sidebar-brand-text {
+    color: #0F6B4C;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+body.theme-dark .sidebar-brand-text {
+    color: #fff;
+}
+
+/* Teks & ikon menu sidebar: bawaan Mazer biru navy (#25396f), diganti hijau senada logo.
+   Khusus mode gelap, teksnya putih polos aja (jangan hijau) biar tetap jelas kebaca. */
+.sidebar-wrapper .menu .sidebar-link,
+.sidebar-wrapper .menu .sidebar-title {
+    color: #0F6B4C;
+}
+
+.sidebar-wrapper .menu .sidebar-title {
+    color: #4c8a72;
+}
+
+body.theme-dark .sidebar-wrapper .menu .sidebar-link,
+body.theme-dark .sidebar-wrapper .menu .sidebar-title {
+    color: #fff;
+}
+
+/* ===== Bel notifikasi (elemen baru, bukan bawaan Mazer) ===== */
+.notif-bell {
+    color: var(--bs-body-color, #607080);
+    position: relative;
+    text-decoration: none;
+}
+
+.notif-badge {
+    font-size: .6rem;
+    left: 100%;
+    margin-left: -14px;
+    position: absolute;
+    top: -4px;
+}
+
+.notif-dropdown-menu {
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 0;
+    width: 320px;
+}
+
+.notif-list .notif-item {
+    font-size: .85rem;
+    white-space: normal;
+}
+
+.notif-item-belum-dibaca {
+    background-color: rgba(15, 107, 76, .08);
+    font-weight: 600;
+}
+
+/* ===== Kartu statistik gaya lingkaran ikon berwarna (dipakai di halaman Laporan,
+   Riwayat Peminjaman, Peminjaman Organisasi, & Dashboard Admin) ===== */
+.stat-card-v2 {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+}
+
+.stat-icon-circle {
+    align-items: center;
+    border-radius: 50%;
+    display: flex;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    height: 56px;
+    justify-content: center;
+    width: 56px;
+}
+
+.stat-icon-circle.bg-total { background: #e8f3ee; color: #0F6B4C; }
+.stat-icon-circle.bg-menunggu { background: #fdf3e3; color: #d8a34a; }
+.stat-icon-circle.bg-disetujui { background: #e3f6ec; color: #2e9e6b; }
+.stat-icon-circle.bg-ditolak { background: #fbe9e9; color: #c94a4a; }
+.stat-icon-circle.bg-info { background: #e6f0fa; color: #3f7cb0; }
+
+.stat-card-v2 .stat-angka {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-card-v2 .stat-label {
+    color: #7c8db5;
+    font-size: 0.8rem;
+}
+
+/* ===== Dashboard mahasiswa: tab selector + kartu KPI solid (gaya BI dashboard) ===== */
+.dash-tab-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dash-tab {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 999px;
+    color: #495057;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.55rem 1.15rem;
+    transition: all 0.15s ease;
+}
+
+.dash-tab i { margin-right: 0.35rem; }
+
+.dash-tab:hover {
+    border-color: #0F6B4C;
+    color: #0F6B4C;
+}
+
+.dash-tab.active {
+    background: #0F6B4C;
+    border-color: #0F6B4C;
+    color: #fff;
+}
+
+body.theme-dark .dash-tab {
+    background: transparent;
+    border-color: #3a4750;
+    border-radius: 999px;
+    color: #cfd8dc;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: normal;
+    padding: 0.55rem 1.15rem;
+}
+
+body.theme-dark .dash-tab.active {
+    background: #17A876;
+    border-color: #17A876;
+    border-radius: 999px;
+    color: #06231a;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: normal;
+    padding: 0.55rem 1.15rem;
+}
+
+.stat-tile {
+    border-radius: 14px;
+    color: #fff;
+    overflow: hidden;
+    padding: 1.15rem 1.35rem;
+    position: relative;
+}
+
+.stat-tile .stat-tile-icon {
+    font-size: 1.6rem;
+    opacity: 0.4;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+}
+
+.stat-tile .stat-tile-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-tile .stat-tile-label {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    opacity: 0.9;
+}
+
+.stat-tile.tile-green { background: linear-gradient(135deg, #0F6B4C, #1E9A6E); }
+.stat-tile.tile-blue { background: linear-gradient(135deg, #2158A0, #3F8FD1); }
+.stat-tile.tile-amber { background: linear-gradient(135deg, #B5731A, #DDA23F); }
+.stat-tile.tile-red { background: linear-gradient(135deg, #A63636, #CD5A5A); }
+.stat-tile.tile-gray { background: linear-gradient(135deg, #495057, #6C757D); }
+
+.stat-tile { box-shadow: 0 4px 14px rgba(15, 107, 76, 0.18); }
+
+.dash-panel .card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(20, 30, 50, 0.06);
+}
+
+body.theme-dark .dash-panel .card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Judul/label section berbentuk fw-bold (mis. "Ruangan yang Dipakai", "Barang yang Dipilih") -> hijau, konsisten di kedua mode */
+.form-label.fw-bold {
+    color: #0F6B4C;
+}
+
+body.theme-dark .form-label.fw-bold {
+    color: #2E9E6B;
+}
+
+/* Judul kartu/grafik (h6.fw-bold, mis. "Proporsi Status Aset Umum") -> biarin polos di mode terang, putih di mode gelap */
+body.theme-dark h6.fw-bold {
+    color: #fff;
+}
+
+/* Ikon kalender/jam bawaan browser di input date & time -> putih di mode gelap (defaultnya hitam) */
+body.theme-dark input[type="date"]::-webkit-calendar-picker-indicator,
+body.theme-dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* Teks abu-abu (text-muted) di dashboard mahasiswa -> putih aja di mode gelap biar gak keliatan pudar */
+body.theme-dark .dash-panel .text-muted {
+    color: #fff !important;
+}
+
+/* Header tabel "Pilih Barang" (table-light) -> latar ijo, teks putih, ganti dari abu-abu bawaan Bootstrap.
+   Ditulis dobel (biasa + body.theme-dark) soalnya Mazer punya body.theme-dark .table-light sendiri
+   yang lebih spesifik dan balikin background ke putih kalau gak ditandingin. */
+.table-light,
+body.theme-dark .table-light {
+    --bs-table-color: #fff;
+    --bs-table-bg: #0F6B4C;
+    --bs-table-border-color: #0c5a40;
+    --bs-table-striped-bg: #127a56;
+    --bs-table-striped-color: #fff;
+    --bs-table-active-bg: #0c5a40;
+    --bs-table-active-color: #fff;
+    --bs-table-hover-bg: #0c5a40;
+    --bs-table-hover-color: #fff;
+}
+
+.table-light th,
+body.theme-dark .table-light th {
+    color: #fff;
+}
+
+/* biar tampilan di zoom browser 100% keliatan lebih compact kayak zoom 90%. SENGAJA gak pakai
+   properti `zoom` -- itu bentrok sama sidebar yang position:fixed + height:100vh (bikin sidebar
+   "kedetach"/keatasan dari kontennya di banyak browser). Jadi dikecilin manual lewat font-size
+   root (ngefek ke semua ukuran rem: padding, gap, badge, tombol, dst) + lebar sidebar & margin
+   konten disesuaikan manual (itu satu-satunya ukuran fixed dalam px, bukan rem, di template ini).
+   Base 300px * 0.9 = 270px. */
+html {
+    font-size: 90%;
+}
+
+.sidebar-wrapper {
+    width: 270px;
+}
+
+#main {
+    margin-left: 270px;
+}
+
+@media screen and (max-width: 1199px) {
+    #main {
+        margin-left: 0;
+    }
+}

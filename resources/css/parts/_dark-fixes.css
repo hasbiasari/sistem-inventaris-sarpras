@@ -1,0 +1,100 @@
+/* perbaikan kontras teks buat mode gelap */
+.app-page-header h2 {
+    color: var(--teks-utama) !important;
+}
+
+.app-topbar span {
+    color: var(--teks-utama) !important;
+    opacity: 0.75;
+}
+
+.card-title,
+.card-body {
+    color: var(--teks-utama);
+}
+
+/* alert bawaan bootstrap kadang teksnya ketutup di mode gelap, kita samain juga */
+[data-theme="dark"] .alert-success {
+    background-color: #163a2c;
+    color: #b7f0cf;
+    border-color: #1f5940;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: #3a1616;
+    color: #f0b7b7;
+    border-color: #592020;
+}
+
+[data-theme="dark"] .form-control {
+    background-color: #0f2320;
+    color: var(--teks-utama);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="dark"] .form-control:focus {
+    background-color: #0f2320;
+    color: var(--teks-utama);
+    border-color: var(--hijau-terang);
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 125, 0.18);
+}
+
+[data-theme="dark"] .btn-outline-secondary {
+    color: var(--teks-utama);
+    border-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover,
+[data-theme="dark"] .btn-outline-secondary:focus {
+    color: var(--hijau-terang);
+    border-color: var(--hijau-terang);
+    background-color: rgba(76, 175, 125, 0.12);
+}
+
+[data-theme="dark"] .table {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-color: var(--teks-utama);
+    --bs-table-border-color: var(--border-warna);
+}
+
+/* sisa-sisa class Tailwind dari breeze (profile, delete account, dll) yang perlu disamain ke tema kita */
+.bg-white {
+    background-color: var(--bg-card) !important;
+}
+
+.text-gray-900 {
+    color: var(--teks-utama) !important;
+}
+
+.text-gray-800 {
+    color: var(--teks-utama) !important;
+}
+
+.text-gray-700 {
+    color: var(--teks-utama) !important;
+}
+
+.text-gray-600 {
+    color: var(--teks-utama) !important;
+    opacity: 0.75;
+}
+
+.text-gray-500 {
+    color: var(--teks-utama) !important;
+    opacity: 0.6;
+}
+
+.shadow, .shadow-md, .shadow-sm {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+
+[data-theme="dark"] .shadow,
+[data-theme="dark"] .shadow-md,
+[data-theme="dark"] .shadow-sm {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+}

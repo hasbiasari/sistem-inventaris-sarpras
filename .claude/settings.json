@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -o \"\\\\.h1,\\\\.h2[^{]*{[^}]*color[^;]*;\" public/css/mazer/main/app-dark.css)",
+      "Bash(php -l app/Http/Controllers/PeminjamanController.php)",
+      "Bash(cd /c/Users/jinfe/AppData/Local/Temp && cat cookies.txt)",
+      "Read(//c/Users/jinfe/AppData/Local/Temp/**)",
+      "Bash(grep -n 'kategoriFilter === '\\\\''kuliah'\\\\'' && $peminjaman->status === '\\\\''disetujui'\\\\''' 'c:\\\\xampp\\\\htdocs\\\\sistem-inventaris-sarpras\\\\resources\\\\views\\\\peminjaman\\\\laporan.blade.php')",
+      "Bash(php -l resources/views/peminjaman/eksternal-create.blade.php)",
+      "Bash(php -l app/Http/Controllers/MahasiswaController.php)",
+      "Bash(git add *)"
+    ]
+  }
+}

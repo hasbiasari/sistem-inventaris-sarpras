@@ -1,0 +1,328 @@
+/* HALAMAN LOGIN/REGISTER */
+.guest-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-body);
+    padding: 24px;
+}
+
+.guest-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-warna);
+    border-radius: 20px;
+    padding: 36px 30px 28px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.08);
+}
+
+.guest-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 26px;
+}
+
+.guest-logo {
+    width: 66px;
+    height: 66px;
+    background-color: rgba(15, 107, 76, 0.08);
+    border-radius: 18px;
+    padding: 12px;
+}
+
+.guest-title {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: 1.45rem;
+    color: var(--teks-utama);
+    margin-bottom: 0;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.guest-subtitle {
+    color: var(--hijau-utama);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+.guest-subtitle a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.guest-subtitle a:hover {
+    text-decoration: underline;
+}
+
+.guest-card label {
+    color: var(--teks-utama);
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+.guest-card input[type="text"],
+.guest-card input[type="email"],
+.guest-card input[type="password"] {
+    width: 100%;
+    background-color: var(--guest-input-bg);
+    border: 1px solid var(--guest-input-border);
+    color: var(--guest-input-text);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-top: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.guest-card input[type="text"]:focus,
+.guest-card input[type="email"]:focus,
+.guest-card input[type="password"]:focus {
+    outline: none;
+    border-color: var(--hijau-terang);
+    box-shadow: 0 0 0 4px rgba(76, 175, 125, 0.12);
+    transform: translateY(-1px);
+}
+
+.input-group {
+    position: relative;
+}
+
+.input-group input {
+    padding-right: 58px;
+}
+
+.input-group .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    border: none;
+    background-color: rgba(15, 107, 76, 0.1);
+    color: var(--hijau-utama);
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.input-group .toggle-password:hover {
+    background-color: rgba(15, 107, 76, 0.16);
+    transform: translateY(-50%) scale(1.03);
+}
+
+.input-group .toggle-password:focus-visible {
+    outline: 2px solid var(--hijau-terang);
+    outline-offset: 3px;
+}
+
+.input-group .toggle-password .icon-eye {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+.input-group .toggle-password .icon-eye-closed {
+    display: none;
+}
+
+.input-group .toggle-password.active .icon-eye-open {
+    display: none;
+}
+
+.input-group .toggle-password.active .icon-eye-closed {
+    display: block;
+}
+
+.guest-card form {
+    display: grid;
+    gap: 18px;
+}
+
+.guest-card .btn-primary {
+    background-image: linear-gradient(135deg, var(--hijau-utama), var(--hijau-terang));
+    border: none;
+    box-shadow: 0 18px 32px rgba(15, 107, 76, 0.16);
+    min-height: 52px;
+    letter-spacing: 0.04em;
+}
+
+.btn-secondary {
+    background-color: rgba(15, 107, 76, 0.08);
+    color: var(--teks-utama);
+    border: 1px solid rgba(15, 107, 76, 0.16);
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(15, 107, 76, 0.14);
+}
+
+.forgot-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 9999;
+}
+
+.forgot-modal-overlay.show {
+    display: flex;
+}
+
+.forgot-modal {
+    width: min(100%, 460px);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-warna);
+    border-radius: 22px;
+    padding: 28px 26px;
+    box-shadow: 0 32px 72px rgba(0, 0, 0, 0.16);
+    position: relative;
+}
+
+.forgot-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    border: none;
+    background: rgba(15, 107, 76, 0.08);
+    color: var(--teks-utama);
+    border-radius: 12px;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.forgot-modal h2 {
+    margin: 0 0 12px;
+    font-size: 1.4rem;
+    color: var(--teks-utama);
+}
+
+.forgot-modal-description {
+    margin: 0 0 22px;
+    color: var(--teks-utama);
+    opacity: 0.8;
+    line-height: 1.6;
+}
+
+.forgot-modal-form {
+    display: grid;
+    gap: 16px;
+}
+
+.forgot-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.input-group {
+    position: relative;
+}
+
+.input-group input {
+    padding-right: 52px;
+}
+
+.input-group .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-40%);
+    border: none;
+    background: transparent;
+    color: var(--hijau-utama);
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.input-group .toggle-password:hover {
+    color: var(--hijau-terang);
+    transform: translateY(-40%) scale(1.05);
+}
+
+.input-group .toggle-password:focus-visible {
+    outline: none;
+}
+
+.eye-icon {
+    display: block;
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.eye-icon.eye-closed {
+    display: none;
+}
+
+.input-group .toggle-password:focus-visible {
+    outline: 2px solid var(--hijau-terang);
+    outline-offset: 3px;
+}
+
+.guest-card .btn-primary:hover {
+    background-image: linear-gradient(135deg, var(--hijau-terang), #2b8c62);
+}
+
+.guest-link-btn {
+    background: none;
+    border: none;
+    color: var(--hijau-utama);
+    text-decoration: underline;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.guest-link-btn:hover {
+    color: var(--hijau-terang);
+}
+
+
+@media (max-width: 576px) {
+    .guest-card {
+        padding: 30px 20px 26px;
+        max-width: 100%;
+    }
+
+    .guest-title {
+        font-size: 1.35rem;
+    }
+
+    .guest-card input[type="text"],
+    .guest-card input[type="email"],
+    .guest-card input[type="password"] {
+        border-radius: 14px;
+    }
+
+    .input-group .toggle-password {
+        right: 10px;
+        padding: 8px 10px;
+    }
+}

@@ -1,0 +1,210 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import './parts/_base.css';
+@import './parts/_sidebar.css';
+@import './parts/_buttons.css';
+@import './parts/_dark-fixes.css';
+@import './parts/_guest.css';
+
+.notif-wrapper {
+    position: relative;
+    margin-left: auto;
+}
+
+.btn-notif {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    position: relative;
+    padding: 4px 8px;
+}
+
+.notif-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+}
+
+.notif-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: 300px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.notif-dropdown-header {
+    padding: 10px 14px;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+}
+
+.notif-item {
+    display: block;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.notif-item:hover {
+    background: #f7f7f7;
+}
+
+.notif-item-belum-dibaca {
+    background: #eef7f0;
+    font-weight: 500;
+}
+
+.notif-kosong {
+    padding: 14px;
+    text-align: center;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.stat-card {
+    border: none;
+    border-left: 4px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    transition: transform 0.15s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+}
+
+.stat-angka {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #777;
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.stat-total {
+    border-left-color: #0F6B4C;
+}
+
+.stat-menunggu {
+    border-left-color: #d8a34a;
+}
+
+.stat-disetujui {
+    border-left-color: #2e9e6b;
+}
+
+.stat-ditolak {
+    border-left-color: #c94a4a;
+}
+
+/* ===== Mazer-inspired polish ===== */
+
+.card {
+    border: none;
+    border-radius: 0.7rem;
+    box-shadow: -8px 12px 18px 0 rgba(25, 42, 70, 0.13);
+}
+
+.card .card-body {
+    padding: 1.5rem;
+}
+
+.btn {
+    border-radius: 0.4rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-sm {
+    border-radius: 0.35rem;
+    padding: 0.3rem 0.75rem;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.badge {
+    border-radius: 0.4rem;
+    font-weight: 700;
+    padding: 0.4em 0.8em;
+}
+
+.table {
+    border-color: #eee;
+}
+
+.table thead th {
+    background-color: #f8f9fc;
+    border-bottom: none;
+    color: #7c8db5;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fc;
+}
+
+/* kartu statistik gaya lingkaran ikon berwarna */
+.stat-card-v2 {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+}
+
+.stat-icon-circle {
+    align-items: center;
+    border-radius: 50%;
+    display: flex;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    height: 56px;
+    justify-content: center;
+    width: 56px;
+}
+
+.stat-icon-circle.bg-total { background: #e8f3ee; color: #0F6B4C; }
+.stat-icon-circle.bg-menunggu { background: #fdf3e3; color: #d8a34a; }
+.stat-icon-circle.bg-disetujui { background: #e3f6ec; color: #2e9e6b; }
+.stat-icon-circle.bg-ditolak { background: #fbe9e9; color: #c94a4a; }
+
+.stat-card-v2 .stat-angka {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-card-v2 .stat-label {
+    color: #7c8db5;
+    font-size: 0.8rem;
+}

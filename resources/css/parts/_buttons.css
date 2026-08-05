@@ -1,0 +1,54 @@
+/* tombol khusus (save, delete, dll) biar keliatan jelas di light & dark mode */
+.btn-app-primary {
+    background-color: var(--hijau-utama);
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-app-primary:hover {
+    background-color: var(--hijau-terang);
+    color: #fff;
+}
+
+.btn-app-danger {
+    background-color: #C0392B;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-app-danger:hover {
+    background-color: #E74C3C;
+    color: #fff;
+}
+
+.btn-app-secondary {
+    background-color: transparent;
+    color: var(--teks-utama);
+    border: 1px solid var(--border-warna);
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-app-secondary:hover {
+    background-color: var(--bg-body);
+}

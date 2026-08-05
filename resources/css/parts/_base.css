@@ -1,0 +1,91 @@
+html {
+    /* biar tampilan di zoom browser 100% keliatan lebih compact kayak zoom 90% -- konsisten sama
+       pendekatan di public/css/mazer-green-theme.css (font-size, BUKAN `zoom`, biar gak numpang
+       bug zoom+position:fixed di elemen lain) */
+    font-size: 90%;
+}
+
+:root {
+    --hijau-utama: #0F6B4C;
+    --hijau-terang: #4CAF7D;
+    --kuning-aksen: #E8B84B;
+
+    --bg-body: #F6FAF8;
+    --bg-card: #FFFFFF;
+    --teks-utama: #14231E;
+    --border-warna: #E1E8E4;
+    --guest-wrapper-bg: radial-gradient(circle at top left, rgba(76, 175, 125, 0.18), transparent 22%),
+                        radial-gradient(circle at bottom right, rgba(15, 107, 76, 0.14), transparent 24%),
+                        linear-gradient(180deg, #F6FBF9 0%, #F1F7F4 28%, #F6FAF8 100%);
+    --guest-card-bg: rgba(255, 255, 255, 0.98);
+    --guest-card-border: rgba(15, 107, 76, 0.12);
+    --guest-card-shadow: 0 32px 72px rgba(15, 107, 76, 0.12);
+    --guest-card-deco-before: linear-gradient(90deg, rgba(15, 107, 76, 0.95), rgba(76, 175, 125, 0.65));
+    --guest-card-deco-after: rgba(76, 175, 125, 0.08);
+    --guest-input-bg: #F7FBF8;
+    --guest-input-border: rgba(15, 107, 76, 0.16);
+    --guest-input-text: #14231E;
+    --guest-title-color: var(--teks-utama);
+    --guest-subtitle-color: var(--hijau-utama);
+    --guest-toggle-bg: rgba(15, 107, 76, 0.08);
+    --guest-toggle-border: rgba(15, 107, 76, 0.16);
+    --guest-toggle-color: var(--hijau-utama);
+}
+
+[data-theme="dark"] {
+    --bg-body: #0B1512;
+    --bg-card: #132420;
+    --teks-utama: #E8F0EC;
+    --border-warna: #24352F;
+    --guest-wrapper-bg: linear-gradient(180deg, #08110f 0%, #0b1512 35%, #132420 100%);
+    --guest-card-bg: rgba(16, 32, 28, 0.92);
+    --guest-card-border: rgba(63, 116, 88, 0.22);
+    --guest-card-shadow: 0 32px 72px rgba(0, 0, 0, 0.32);
+    --guest-card-deco-before: linear-gradient(90deg, rgba(96, 156, 132, 0.65), rgba(76, 175, 125, 0.34));
+    --guest-card-deco-after: rgba(76, 175, 125, 0.06);
+    --guest-input-bg: #152522;
+    --guest-input-border: rgba(63, 116, 88, 0.35);
+    --guest-input-text: #E8F0EC;
+    --guest-title-color: #E8F0EC;
+    --guest-subtitle-color: #8AC6A0;
+    --guest-toggle-bg: rgba(255, 255, 255, 0.08);
+    --guest-toggle-border: rgba(255, 255, 255, 0.16);
+    --guest-toggle-color: #E8F0EC;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    background-color: var(--bg-body);
+    color: var(--teks-utama);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', sans-serif;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.card {
+    background-color: var(--bg-card);
+    border-color: var(--border-warna);
+    color: var(--teks-utama);
+}
+
+.table {
+    color: var(--teks-utama);
+}
+
+.btn-primary {
+    background-color: var(--hijau-utama);
+    border-color: var(--hijau-utama);
+}
+
+.btn-primary:hover {
+    background-color: var(--hijau-terang);
+    border-color: var(--hijau-terang);
+}
