@@ -11,7 +11,12 @@ class AsetUmumController extends Controller
     public function index(Request $request)
     {
         $keyword = $request->input('cari');
-        $status = $request->input('status');
+
+        // urutan diinget lewat session, biar gak reset ke a-z tiap balik ke halaman ini
+        if ($request->has('urutan')) {
+            session(['urutan_aset_umum' => $request->input('urutan')]);
+        }
+        $urutan = session('urutan_aset_umum', 'a-z');
 
         $asetUmum = AsetUmum::when($keyword, function ($query, $keyword) {
                 $query->where('nama_alat', 'like', "%{$keyword}%")
@@ -19,33 +24,18 @@ class AsetUmumController extends Controller
                       ->orWhere('nomor_unit', 'like', "%{$keyword}%")
                       ->orWhere('kode_aset', 'like', "%{$keyword}%");
             })
-            // dari dashboard admin, tiap status (Tersedia/Dipinjam/Rusak/Pemeliharaan) bisa diklik
-            // biar langsung liat daftarnya di sini, gak usah nyari manual. Rusak/pemeliharaan
-            // masih kolom manual jadi bisa difilter langsung di query; tersedia/dipinjam sekarang
-            // dihitung ulang dari peminjaman aktif (status_efektif), jadi difilter sesudah di-get()
-            ->when($status && in_array($status, ['rusak', 'pemeliharaan']), fn ($query) => $query->where('status', $status))
-            // biar admin tau siapa yang lagi minjem alat "dipinjam", bukan cuma liat status
-            // doang tanpa konteks -- ambil peminjaman yang beneran aktif SEKARANG buat tiap alat.
+            // biar admin tau siapa yang lagi minjem
             ->with(['peminjamanDetailAktifSekarang.peminjaman.mahasiswa'])
-            // urutin: Kunci dulu, terus Proyektor, baru alat lain-lain
-            ->orderByRaw("
-                CASE
-                    WHEN nama_alat LIKE 'Kunci%' THEN 1
-                    WHEN nama_alat = 'Proyektor' THEN 2
-                    ELSE 3
-                END
-            ")
-            // dalam grup Kunci/Lainnya, urutin alfabet nama
-            ->orderBy('nama_alat')
-            // dalam grup Proyektor, urutin angka nomor unit (4,5,6...bukan 10,11,12,4,5)
-            ->orderByRaw('CAST(nomor_unit AS UNSIGNED) ASC')
+            ->when($urutan === 'terbaru', function ($query) {
+                $query->orderByDesc('created_at');
+            }, function ($query) {
+                $query->orderBy('nama_alat')
+                    // urutin angka nomor unit (4,5,6...bukan 10,11,12,4,5)
+                    ->orderByRaw('CAST(nomor_unit AS UNSIGNED) ASC');
+            })
             ->get();
 
-        if ($status && in_array($status, ['tersedia', 'dipinjam'])) {
-            $asetUmum = $asetUmum->filter(fn ($alat) => $alat->status_efektif === $status)->values();
-        }
-
-        return view('aset-umum.index', compact('asetUmum', 'keyword', 'status'));
+        return view('aset-umum.index', compact('asetUmum', 'keyword', 'urutan'));
     }
 
     // form tambah aset
@@ -63,8 +53,13 @@ class AsetUmumController extends Controller
             'merek'       => 'nullable|string|max:100',
             'kode_aset'   => 'nullable|string|max:50',
             'jumlah_stok' => 'required|integer|min:0',
-            'status'      => 'required|in:tersedia,dipinjam,rusak,pemeliharaan',
+            // "dipinjam" sengaja gak termasuk -- itu status otomatis ngikutin peminjaman aktif, bukan manual
+            'status'      => 'nullable|in:tersedia,rusak,pemeliharaan',
         ]);
+
+        if ($validated['nama_alat'] === 'Proyektor') {
+            $validated['batas_jam_maksimal'] = 2000;
+        }
 
         AsetUmum::create($validated);
 
@@ -88,7 +83,8 @@ class AsetUmumController extends Controller
             'merek'       => 'nullable|string|max:100',
             'kode_aset'   => 'nullable|string|max:50',
             'jumlah_stok' => 'required|integer|min:0',
-            'status'      => 'required|in:tersedia,dipinjam,rusak,pemeliharaan',
+            // "dipinjam" sengaja gak termasuk -- itu status otomatis ngikutin peminjaman aktif, bukan manual
+            'status'      => 'nullable|in:tersedia,rusak,pemeliharaan',
         ]);
 
         $asetUmum->update($validated);

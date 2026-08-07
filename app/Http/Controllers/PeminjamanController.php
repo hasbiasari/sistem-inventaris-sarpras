@@ -23,13 +23,7 @@ class PeminjamanController extends Controller
         return view('peminjaman.create', compact('mahasiswa', 'daftarAlat', 'daftarRuangan'));
     }
 
-    // cek apakah ruangan yang mau dipakai udah kepakai/kepesan di rentang WAKTU yang overlap.
-    // $tanggalSelesai boleh null (peminjaman sehari doang, kayak kuliah) -- efeknya dianggap sama
-    // kayak $tanggalMulai. Peminjaman diperlakukan sebagai SATU rentang waktu yang jalan terus
-    // dari (tanggal_pakai + jam_mulai) sampai (tanggal_selesai + jam_selesai) -- BUKAN jam yang
-    // sama diulang tiap hari. Jadi misal booking 28/07 13:38 s.d. 29/07 14:00, ruangannya kepakai
-    // terus-menerus dari jam segitu di tanggal itu sampai jam segitu di tanggal satunya, bukan
-    // cuma jam 13:38-14:00 doang tiap hari.
+    // cek ruangan bentrok jadwal, rentang waktu kontinu (bukan jam yang sama diulang tiap hari)
     private function ruanganBentrok($asetKelasId, $tanggalMulai, $tanggalSelesai, $jamMulai, $jamSelesai, $kecualiPeminjamanId = null)
     {
         $mulaiRequest = "{$tanggalMulai} {$jamMulai}";
@@ -38,16 +32,13 @@ class PeminjamanController extends Controller
         return Peminjaman::where('aset_kelas_id', $asetKelasId)
             ->whereIn('status', ['menunggu', 'disetujui'])
             ->when($kecualiPeminjamanId, fn ($q) => $q->where('id', '!=', $kecualiPeminjamanId))
-            // overlap rentang datetime kontinu: mulai peminjaman lain < selesai punya kita,
-            // DAN selesai peminjaman lain > mulai punya kita
+            // overlap: mulai peminjaman lain < selesai kita, selesai peminjaman lain > mulai kita
             ->whereRaw('TIMESTAMP(tanggal_pakai, jam_mulai) < ?', [$selesaiRequest])
             ->whereRaw('TIMESTAMP(COALESCE(tanggal_selesai, tanggal_pakai), jam_selesai) > ?', [$mulaiRequest])
             ->exists();
     }
 
-    // dipanggil AJAX dari form Ajukan/Edit Peminjaman, biar mahasiswa tau ruangannya bentrok
-    // SEBELUM submit -- bukan baru ketahuan pas ditolak sesudah kirim. Aturan bentroknya sama
-    // persis kayak yang dipakai pas store()/update() (ruanganBentrok), jadi hasilnya konsisten.
+    // cek bentrok ruangan via AJAX, sebelum form disubmit
     public function cekRuanganBentrok(Request $request)
     {
         $request->validate([
@@ -70,10 +61,7 @@ class PeminjamanController extends Controller
         return response()->json(['bentrok' => $bentrok]);
     }
 
-    // sisa stok barang yang BENERAN tersedia pada rentang WAKTU tertentu -- bukan cuma ngurangin
-    // counter permanen kayak dulu, tapi dihitung ulang tiap kali dari peminjaman yang masih aktif
-    // (menunggu/disetujui) dan rentang datetime-nya overlap, persis logic ruanganBentrok() (satu
-    // rentang waktu kontinu dari tanggal_pakai+jam_mulai s.d. tanggal_selesai+jam_selesai).
+    // sisa stok barang yang beneran tersedia di rentang waktu tertentu (dihitung ulang tiap panggil)
     private function stokBarangTersedia($asetUmumId, $tanggalMulai, $tanggalSelesai, $jamMulai, $jamSelesai, $kecualiPeminjamanId = null)
     {
         $alat = AsetUmum::find($asetUmumId);
@@ -87,18 +75,28 @@ class PeminjamanController extends Controller
 
         $terpakai = PeminjamanDetail::where('aset_umum_id', $asetUmumId)
             ->whereHas('peminjaman', function ($q) use ($mulaiRequest, $selesaiRequest, $kecualiPeminjamanId) {
-                $q->whereIn('status', ['menunggu', 'disetujui'])
-                    ->when($kecualiPeminjamanId, fn ($qq) => $qq->where('id', '!=', $kecualiPeminjamanId))
-                    ->whereRaw('TIMESTAMP(tanggal_pakai, jam_mulai) < ?', [$selesaiRequest])
-                    ->whereRaw('TIMESTAMP(COALESCE(tanggal_selesai, tanggal_pakai), jam_selesai) > ?', [$mulaiRequest]);
+                $q->when($kecualiPeminjamanId, fn ($qq) => $qq->where('id', '!=', $kecualiPeminjamanId))
+                    ->where(function ($q2) use ($mulaiRequest, $selesaiRequest) {
+                        // menunggu: overlap normal berdasarkan jadwal yang diajukan
+                        $q2->where(function ($qMenunggu) use ($mulaiRequest, $selesaiRequest) {
+                            $qMenunggu->where('status', 'menunggu')
+                                ->whereRaw('TIMESTAMP(tanggal_pakai, jam_mulai) < ?', [$selesaiRequest])
+                                ->whereRaw('TIMESTAMP(COALESCE(tanggal_selesai, tanggal_pakai), jam_selesai) > ?', [$mulaiRequest]);
+                        })
+                        // disetujui & belum dikembalikan: dianggap kepake terus dari jam mulai,
+                        // gak peduli udah lewat jadwal jam selesai apa belum (belum tentu udah balik)
+                        ->orWhere(function ($qDisetujui) use ($selesaiRequest) {
+                            $qDisetujui->where('status', 'disetujui')
+                                ->whereRaw('TIMESTAMP(tanggal_pakai, jam_mulai) < ?', [$selesaiRequest]);
+                        });
+                    });
             })
             ->sum('jumlah');
 
         return $alat->jumlah_stok - $terpakai;
     }
 
-    // dipanggil AJAX dari form Ajukan/Edit/Booking Eksternal, biar daftar barang nunjukin sisa
-    // stok yang REAL buat tanggal+jam yang lagi dipilih (bukan angka statis jumlah_stok)
+    // cek sisa stok barang via AJAX buat tanggal+jam yang dipilih
     public function cekStokBarang(Request $request)
     {
         $request->validate([
@@ -124,14 +122,34 @@ class PeminjamanController extends Controller
         return response()->json($stok);
     }
 
-    // pesan validasi bahasa Indonesia, dipakai bareng di store() & update() biar mahasiswa
-    // gampang paham errornya (bawaan Laravel bahasa Inggris)
+    // pastiin total jumlah yang diminta gak ngelebihin stok -- dijumlahin dulu per aset_umum_id
+    // soalnya barang yang sama bisa muncul di beberapa baris (misal request hasil manipulasi manual, bypass merge di JS)
+    private function validasiStokBarang(array $daftarBarang, $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai, $kecualiPeminjamanId = null)
+    {
+        $totalPerBarang = collect($daftarBarang)
+            ->groupBy('aset_umum_id')
+            ->map(fn ($items) => $items->sum('jumlah'));
+
+        foreach ($totalPerBarang as $asetUmumId => $totalDiminta) {
+            $tersedia = $this->stokBarangTersedia($asetUmumId, $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai, $kecualiPeminjamanId);
+            if ($tersedia < $totalDiminta) {
+                $alat = AsetUmum::find($asetUmumId);
+                return "Jumlah {$alat->nama_alat} melebihi stok tersedia (sisa: {$tersedia}).";
+            }
+        }
+
+        return null;
+    }
+
+    // pesan validasi bahasa Indonesia buat store() & update()
     private function pesanValidasiPeminjaman()
     {
         return [
             'kelas.required' => 'Kelas wajib diisi.',
             'ormawa.required' => 'Nama ORMAWA wajib diisi.',
             'ormawa.required_if' => 'Nama ORMAWA wajib diisi.',
+            'nama_kegiatan.required' => 'Nama Kegiatan wajib diisi.',
+            'nama_kegiatan.required_if' => 'Nama Kegiatan wajib diisi.',
             'barang.*.aset_umum_id.required' => 'Barang tidak boleh kosong.',
             'barang.*.aset_umum_id.exists' => 'Barang yang dipilih tidak valid.',
             'barang.*.jumlah.required' => 'Jumlah barang wajib diisi.',
@@ -153,9 +171,7 @@ class PeminjamanController extends Controller
         ];
     }
 
-    // kuliah otomatis disetujui (gak lewat approval admin), jadi tetap boleh diedit mahasiswa
-    // sendiri selama belum dikembalikan -- buat jaga-jaga kalau pas ambil barang ternyata
-    // kondisinya beda (rusak dll) dan admin belum sempat update datanya.
+    // kuliah masih boleh diedit sendiri selama belum dikembalikan (auto-approved, gak lewat admin)
     private function bisaDiedit(Peminjaman $peminjaman)
     {
         return $peminjaman->status === 'menunggu'
@@ -188,13 +204,13 @@ class PeminjamanController extends Controller
         $daftarAlat = AsetUmum::whereNotIn('status', ['rusak', 'pemeliharaan'])->orderBy('nama_alat')->get();
         $daftarRuangan = AsetKelas::orderBy('nama_ruangan')->get();
 
-        // barang yang udah dipilih di peminjaman ini, buat pre-fill "keranjang" di form edit
+        // pre-fill keranjang barang di form edit
         $barangDipilihAwal = $peminjaman->details->map(function ($detail) {
             $alat = $detail->asetUmum;
 
             return [
                 'id' => (string) $detail->aset_umum_id,
-                'nama' => $alat->nama_alat . ($alat->nomor_unit ? " ({$alat->nomor_unit})" : ''),
+                'nama' => $alat->nama_lengkap,
                 'jumlah' => $detail->jumlah,
                 'stok' => $alat->jumlah_stok,
             ];
@@ -217,6 +233,7 @@ class PeminjamanController extends Controller
         $request->validate([
             'kelas' => 'required|string|max:50',
             'ormawa' => $peminjaman->kategori === 'organisasi' ? 'required|string|max:100' : 'nullable|string|max:100',
+            'nama_kegiatan' => $peminjaman->kategori === 'organisasi' ? 'required|string|max:150' : 'nullable|string|max:150',
             'barang' => 'nullable|array',
             'barang.*.aset_umum_id' => 'required|exists:aset_umums,id',
             'barang.*.jumlah' => 'required|integer|min:1',
@@ -231,7 +248,7 @@ class PeminjamanController extends Controller
         $asetKelasId = $request->aset_kelas_id;
         $daftarBarang = $request->barang ?? [];
         $tanggalPakai = $request->tanggal_pakai;
-        // kuliah tetap sehari doang, cuma organisasi yang boleh multi-hari
+        // hanya organisasi yang boleh multi-hari
         $tanggalSelesai = $peminjaman->kategori === 'organisasi' ? $request->tanggal_selesai : null;
         $jamMulai = $request->jam_mulai;
         $jamSelesai = $request->jam_selesai;
@@ -248,18 +265,13 @@ class PeminjamanController extends Controller
             ])->withInput();
         }
 
-        foreach ($daftarBarang as $item) {
-            $tersedia = $this->stokBarangTersedia($item['aset_umum_id'], $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai, $peminjaman->id);
-            if ($tersedia < $item['jumlah']) {
-                $alat = AsetUmum::find($item['aset_umum_id']);
-                return back()->withErrors([
-                    'barang' => "Stok {$alat->nama_alat} tidak mencukupi pada jam tersebut (tersisa {$tersedia})",
-                ])->withInput();
-            }
+        if ($pesanErrorStok = $this->validasiStokBarang($daftarBarang, $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai, $peminjaman->id)) {
+            return back()->withErrors(['barang' => $pesanErrorStok])->withInput();
         }
 
         $peminjaman->kelas = $request->kelas;
         $peminjaman->ormawa = $request->ormawa;
+        $peminjaman->nama_kegiatan = $request->nama_kegiatan;
         $peminjaman->aset_kelas_id = $asetKelasId;
         $peminjaman->tanggal_pakai = $tanggalPakai;
         $peminjaman->tanggal_selesai = $tanggalSelesai;
@@ -286,8 +298,7 @@ class PeminjamanController extends Controller
             ->with('success', 'Peminjaman berhasil diperbarui.');
     }
 
-    // data buat popup "struk" bukti pengajuan, ditunjukin mahasiswa ke Admin TU pas nganter barang
-    // (TU kadang lebih dari 1 orang jaga, jadi siapa aja yang lagi jaga bisa langsung tahu detailnya)
+    // data struk bukti pengajuan, ditunjukin ke Admin TU pas nganter barang
     private function buatStruk($mahasiswa, Peminjaman $peminjaman, array $barang)
     {
         return [
@@ -295,6 +306,7 @@ class PeminjamanController extends Controller
             'nim' => $mahasiswa->nim,
             'kelas' => $peminjaman->kelas,
             'ormawa' => $peminjaman->ormawa,
+            'nama_kegiatan' => $peminjaman->nama_kegiatan,
             'kategori' => ucfirst($peminjaman->kategori),
             'status' => ucfirst($peminjaman->status),
             'waktu_mulai' => $peminjaman->created_at->format('d/m/Y H:i'),
@@ -303,7 +315,7 @@ class PeminjamanController extends Controller
                 : null,
             'barang' => collect($barang)->map(function ($item) {
                 $alat = AsetUmum::find($item['aset_umum_id']);
-                return ($alat->nama_alat ?? '-') . ' x' . $item['jumlah'];
+                return ($alat->nama_lengkap ?? '-') . ' x' . $item['jumlah'];
             })->all(),
         ];
     }
@@ -314,6 +326,7 @@ class PeminjamanController extends Controller
             'kategori' => 'required|in:kuliah,organisasi',
             'kelas' => 'required|string|max:50',
             'ormawa' => 'required_if:kategori,organisasi|nullable|string|max:100',
+            'nama_kegiatan' => 'required_if:kategori,organisasi|nullable|string|max:150',
             'barang' => 'nullable|array',
             'barang.*.aset_umum_id' => 'required|exists:aset_umums,id',
             'barang.*.jumlah' => 'required|integer|min:1',
@@ -327,13 +340,10 @@ class PeminjamanController extends Controller
 
         $mahasiswa = Auth::user()->mahasiswa;
 
-        // ruangan opsional (baik kuliah maupun organisasi bisa pilih tanggal bebas ke depan),
-        // tapi tanggal+jam SELALU dipakai sekarang -- barang pun dicek bentrok berdasarkan jam,
-        // bukan cuma stok, jadi butuh jendela waktu meski gak pilih ruangan sama sekali
         $asetKelasId = $request->aset_kelas_id;
         $daftarBarang = $request->barang ?? [];
         $tanggalPakai = $request->tanggal_pakai;
-        // kuliah tetap sehari doang, cuma organisasi yang boleh multi-hari
+        // hanya organisasi yang boleh multi-hari
         $tanggalSelesai = $request->kategori === 'organisasi' ? $request->tanggal_selesai : null;
         $jamMulai = $request->jam_mulai;
         $jamSelesai = $request->jam_selesai;
@@ -350,14 +360,8 @@ class PeminjamanController extends Controller
             ])->withInput();
         }
 
-        foreach ($daftarBarang as $item) {
-            $tersedia = $this->stokBarangTersedia($item['aset_umum_id'], $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai);
-            if ($tersedia < $item['jumlah']) {
-                $alat = AsetUmum::find($item['aset_umum_id']);
-                return back()->withErrors([
-                    'barang' => "Stok {$alat->nama_alat} tidak mencukupi pada jam tersebut (tersisa {$tersedia})",
-                ])->withInput();
-            }
+        if ($pesanErrorStok = $this->validasiStokBarang($daftarBarang, $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai)) {
+            return back()->withErrors(['barang' => $pesanErrorStok])->withInput();
         }
 
         if ($request->kategori === 'kuliah') {
@@ -382,6 +386,15 @@ class PeminjamanController extends Controller
                 ]);
             }
 
+            $adminList = User::where('role', 'admin_tu')->get();
+            foreach ($adminList as $admin) {
+                Notifikasi::create([
+                    'user_id' => $admin->id,
+                    'pesan' => "Pengajuan peminjaman kuliah baru dari {$mahasiswa->nama}",
+                    'link' => route('admin.peminjaman.laporan', ['filter' => 'kuliah', 'highlight' => $peminjaman->id], false),
+                ]);
+            }
+
             return redirect()->route('peminjaman.create')
                 ->with('success', 'Peminjaman berhasil diajukan dan otomatis disetujui!')
                 ->with('struk', $this->buatStruk($mahasiswa, $peminjaman, $daftarBarang));
@@ -394,6 +407,7 @@ class PeminjamanController extends Controller
             'mahasiswa_id' => $mahasiswa->id,
             'kelas' => $request->kelas,
             'ormawa' => $request->ormawa,
+            'nama_kegiatan' => $request->nama_kegiatan,
             'kategori' => 'organisasi',
             'status' => 'menunggu',
             'dokumen_izin' => $pathDokumen,
@@ -417,7 +431,7 @@ class PeminjamanController extends Controller
             Notifikasi::create([
                 'user_id' => $admin->id,
                 'pesan' => "Pengajuan peminjaman organisasi baru dari {$mahasiswa->nama}",
-                'link' => route('admin.peminjaman.laporan', ['filter' => 'organisasi'], false),
+                'link' => route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'highlight' => $peminjaman->id], false),
             ]);
         }
 
@@ -426,7 +440,19 @@ class PeminjamanController extends Controller
             ->with('struk', $this->buatStruk($mahasiswa, $peminjaman, $daftarBarang));
     }
 
-    // mahasiswa balikin barang: upload foto bukti (bisa lebih dari 1), stok balik, status jadi selesai
+    // tambahin jam pemakaian ke tiap unit proyektor yang ada di peminjaman ini
+    private function tambahJamPakaiProyektor(Peminjaman $peminjaman)
+    {
+        foreach ($peminjaman->details as $detail) {
+            $alat = $detail->asetUmum;
+
+            if ($alat && $alat->nama_alat === 'Proyektor') {
+                $alat->increment('total_jam_pakai', $peminjaman->durasi_jam * $detail->jumlah);
+            }
+        }
+    }
+
+    // proses pengembalian barang: upload foto bukti, status jadi selesai
     public function kembalikan(Request $request, Peminjaman $peminjaman)
     {
         if ($peminjaman->mahasiswa_id !== Auth::user()->mahasiswa->id) {
@@ -449,17 +475,29 @@ class PeminjamanController extends Controller
             ]);
         }
 
+        $peminjaman->load('details.asetUmum');
+        $this->tambahJamPakaiProyektor($peminjaman);
+
         $peminjaman->update([
             'status' => 'selesai',
             'waktu_kembali' => now(),
         ]);
 
+        // kasih tau admin barangnya udah balik, biar gak perlu ngecek manual satu-satu
+        $adminList = User::where('role', 'admin_tu')->get();
+        foreach ($adminList as $admin) {
+            Notifikasi::create([
+                'user_id' => $admin->id,
+                'pesan' => "{$peminjaman->mahasiswa->nama} telah mengembalikan barang dari peminjaman {$peminjaman->kategori}.",
+                'link' => route('admin.peminjaman.laporan', ['filter' => $peminjaman->kategori, 'highlight' => $peminjaman->id], false),
+            ]);
+        }
+
         return redirect()->route('peminjaman.show', $peminjaman->id)
             ->with('success', 'Barang berhasil dikembalikan.');
     }
 
-    // hitung breakdown status (menunggu/disetujui/ditolak/dibatalkan/selesai) dari 1 koleksi peminjaman,
-    // dipakai buat grafik yang berubah-ubah pas admin/pimpinan klik tombol filter kategori
+    // breakdown status peminjaman, dipakai buat grafik filter kategori
     private function hitungStatusPeminjaman($koleksi)
     {
         return [
@@ -471,12 +509,10 @@ class PeminjamanController extends Controller
         ];
     }
 
-    // daftar semua peminjaman (kuliah, organisasi, eksternal) jadi 1 halaman, biar admin gampang
-    // filter per kategori (tombol Semua/Kuliah/Organisasi/Eksternal) + lihat grafik distribusinya.
-    // Aksi Setujui/Tolak/Batalkan tetap ada, sama kayak di halaman kuliah-index/organisasi-index.
+    // laporan semua peminjaman, bisa difilter per kategori
     public function laporan(Request $request)
     {
-        $query = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas', 'buktiPengembalian']);
+        $query = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas', 'buktiPengembalian'])->bukanSimulasi();
 
         if ($request->filled('dari_tanggal')) {
             $query->whereDate('created_at', '>=', $request->dari_tanggal);
@@ -492,7 +528,7 @@ class PeminjamanController extends Controller
         $jumlahOrganisasi = $daftarPeminjaman->where('kategori', 'organisasi')->count();
         $jumlahEksternal = $daftarPeminjaman->where('jenis_peminjam', 'eksternal')->count();
 
-        // breakdown status per kategori, buat grafik yang ikut berubah pas tombol filter diklik
+        // breakdown status per kategori buat grafik filter
         $statusPerKategori = [
             'semua' => $this->hitungStatusPeminjaman($daftarPeminjaman),
             'kuliah' => $this->hitungStatusPeminjaman($daftarPeminjaman->where('kategori', 'kuliah')),
@@ -500,8 +536,7 @@ class PeminjamanController extends Controller
             'eksternal' => $this->hitungStatusPeminjaman($daftarPeminjaman->where('jenis_peminjam', 'eksternal')),
         ];
 
-        // filter kategori awal (dari link dashboard/notifikasi, misal ?filter=organisasi),
-        // biar admin langsung liat yang relevan tanpa perlu klik tab kategori manual dulu
+        // filter kategori awal, misal dari link ?filter=organisasi
         $filterAwal = in_array($request->input('filter'), ['kuliah', 'organisasi', 'eksternal'])
             ? $request->input('filter')
             : 'semua';
@@ -516,9 +551,7 @@ class PeminjamanController extends Controller
         ));
     }
 
-    // admin batalin peminjaman (kuliah/organisasi/eksternal) yang udah disetujui, kalau ada kendala
-    // di lapangan atau barangnya gak kunjung dibalikin. Barang/ruangan otomatis "bebas" lagi begitu
-    // status keluar dari [menunggu, disetujui] -- gak perlu balikin stok manual lagi.
+    // admin batalin peminjaman yang udah disetujui
     private function batalkanPeminjamanDisetujui(Request $request, Peminjaman $peminjaman, string $kategoriPesan)
     {
         if ($peminjaman->status !== 'disetujui') {
@@ -534,7 +567,7 @@ class PeminjamanController extends Controller
             'catatan_admin' => $request->catatan_admin,
         ]);
 
-        // booking eksternal gak punya akun mahasiswa, jadi gak ada yang dikirimin notifikasi
+        // eksternal gak punya akun mahasiswa, jadi gak ada notifikasi
         if ($peminjaman->mahasiswa) {
             Notifikasi::create([
                 'user_id' => $peminjaman->mahasiswa->user_id,
@@ -633,7 +666,7 @@ class PeminjamanController extends Controller
             ->latest()
             ->get();
 
-        // siapin data buat grafik jumlah peminjaman per bulan, 6 bulan terakhir
+        // grafik jumlah peminjaman per bulan, 6 bulan terakhir
         $labelBulan = [];
         $dataPerBulan = [];
         for ($i = 5; $i >= 0; $i--) {
@@ -644,7 +677,7 @@ class PeminjamanController extends Controller
             })->count();
         }
 
-        // siapin data buat grafik jenis barang paling sering dipinjam
+        // grafik barang paling sering dipinjam
         $rekapBarang = [];
         foreach ($daftarPeminjaman as $peminjaman) {
             foreach ($peminjaman->details as $detail) {
@@ -682,8 +715,7 @@ class PeminjamanController extends Controller
 
     public function eksternalStore(Request $request)
     {
-        // baris barang yang aset_umum_id-nya kosong (row default yang gak diisi admin) dianggap
-        // gak ada, biar booking bisa cuma pinjam ruangan doang tanpa barang
+        // buang baris barang yang aset_umum_id-nya kosong
         $request->merge([
             'barang' => collect($request->input('barang', []))
                 ->filter(fn ($item) => ! empty($item['aset_umum_id']))
@@ -723,14 +755,8 @@ class PeminjamanController extends Controller
             ])->withInput();
         }
 
-        foreach ($daftarBarang as $item) {
-            $tersedia = $this->stokBarangTersedia($item['aset_umum_id'], $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai);
-            if ($tersedia < $item['jumlah']) {
-                $alat = AsetUmum::find($item['aset_umum_id']);
-                return back()->withErrors([
-                    'barang' => "Stok {$alat->nama_alat} tidak mencukupi pada jam tersebut (tersisa {$tersedia})",
-                ])->withInput();
-            }
+        if ($pesanErrorStok = $this->validasiStokBarang($daftarBarang, $tanggalPakai, $tanggalSelesai, $jamMulai, $jamSelesai)) {
+            return back()->withErrors(['barang' => $pesanErrorStok])->withInput();
         }
 
         $peminjaman = Peminjaman::create([

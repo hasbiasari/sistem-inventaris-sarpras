@@ -12,7 +12,7 @@
                 <i class="bi bi-exclamation-triangle-fill"></i>
                 Aset ini lagi dipinjam sama:
                 <strong>{{ $asetUmum->peminjamanDetailAktifSekarang->map(fn($d) => $d->peminjaman->nama_peminjam)->join(', ') }}</strong>
-                sekarang. Hati-hati kalau mau ubah status/stok manual di sini, biar gak beda sama catatan peminjamannya.
+                sekarang. Hati-hati kalau mau ubah stok manual di sini, biar gak beda sama catatan peminjamannya.
             </div>
         @endif
 
@@ -52,13 +52,13 @@
 
             <div class="mb-3">
                 <label>Status</label>
-                <select name="status" class="form-control">
-                    <option value="tersedia" {{ $asetUmum->status == 'tersedia' ? 'selected' : '' }}>Tersedia</option>
-                    <option value="dipinjam" {{ $asetUmum->status == 'dipinjam' ? 'selected' : '' }}>Dipinjam</option>
-                    <option value="rusak" {{ $asetUmum->status == 'rusak' ? 'selected' : '' }}>Rusak</option>
-                    <option value="pemeliharaan" {{ $asetUmum->status == 'pemeliharaan' ? 'selected' : '' }}>Pemeliharaan</option>
+                <select name="status" class="form-select">
+                    <option value="tersedia" @selected(old('status', $asetUmum->status) === 'tersedia')>Tersedia</option>
+                    <option value="rusak" @selected(old('status', $asetUmum->status) === 'rusak')>Rusak</option>
+                    <option value="pemeliharaan" @selected(old('status', $asetUmum->status) === 'pemeliharaan')>Pemeliharaan</option>
                 </select>
-                @error('status') <small class="text-danger">{{ $message }}</small> @enderror
+                <small class="text-muted">Status "Dipinjam" otomatis ngikutin data peminjaman, gak bisa dipilih di sini.</small>
+                @error('status') <small class="text-danger d-block">{{ $message }}</small> @enderror
             </div>
 
             <button type="submit" class="btn btn-primary">Update</button>

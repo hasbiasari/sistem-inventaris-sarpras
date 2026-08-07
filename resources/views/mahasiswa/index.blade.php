@@ -40,6 +40,10 @@
         <form method="GET" action="{{ route('admin.mahasiswa') }}" class="mb-0">
             <div class="input-group">
                 <input type="text" name="cari" class="form-control" placeholder="Cari NIM / Nama / Email..." value="{{ $keyword ?? '' }}">
+                <select name="urutan" class="form-select" style="max-width: 160px;">
+                    <option value="a-z" @selected(($urutan ?? 'a-z') === 'a-z')>Urutan A-Z</option>
+                    <option value="terbaru" @selected(($urutan ?? '') === 'terbaru')>Urutan Terbaru</option>
+                </select>
                 <button type="submit" class="btn btn-outline-secondary">Cari</button>
             </div>
         </form>
@@ -145,6 +149,8 @@
     });
 
     $('#tabelMahasiswa').DataTable({
+        responsive: true,
+        columnDefs: [{ className: 'all', targets: -1 }],
         pageLength: 5,
         lengthMenu: [5, 10, 25, 50],
         language: {

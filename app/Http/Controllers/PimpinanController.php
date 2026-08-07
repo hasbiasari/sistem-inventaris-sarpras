@@ -9,26 +9,25 @@ use App\Models\Peminjaman;
 
 class PimpinanController extends Controller
 {
-    // Halaman untuk Pimpinan - Dashboard Pemantauan Aset & Peminjaman (read-only)
+    // dashboard pemantauan aset & peminjaman buat Pimpinan (read-only)
     public function dashboard()
     {
         $totalKelas         = AsetKelas::count();
         $totalMahasiswa     = Mahasiswa::count();
         $totalAlat          = AsetUmum::count();
 
-        // status_efektif dihitung ulang dari peminjaman yang aktif SEKARANG (bukan kolom `status`
-        // statis, yang cuma keisi manual pas aset dibuat/diedit admin dan gak pernah keupdate
-        // otomatis pas ada mahasiswa minjam/balikin alat)
+        // status_efektif dihitung ulang dari peminjaman yang aktif sekarang
         $daftarAlat = AsetUmum::with('peminjamanDetailAktifSekarang')->latest()->get();
         $alatTersedia       = $daftarAlat->where('status_efektif', 'tersedia')->count();
         $alatDipinjam       = $daftarAlat->where('status_efektif', 'dipinjam')->count();
         $alatRusak          = $daftarAlat->where('status_efektif', 'rusak')->count();
         $alatPemeliharaan   = $daftarAlat->where('status_efektif', 'pemeliharaan')->count();
 
-        // ringkasan peminjaman (Increment 2): total, yang lagi aktif, sama yang beres bulan ini
-        $totalPeminjaman = Peminjaman::count();
+        // ringkasan peminjaman: total, aktif, selesai bulan ini
+        $totalPeminjaman = Peminjaman::bukanSimulasi()->count();
         $peminjamanAktif = Peminjaman::where('status', 'disetujui')->count();
         $selesaiBulanIni = Peminjaman::where('status', 'selesai')
+            ->bukanSimulasi()
             ->whereYear('waktu_kembali', now()->year)
             ->whereMonth('waktu_kembali', now()->month)
             ->count();
@@ -42,15 +41,24 @@ class PimpinanController extends Controller
         for ($i = 5; $i >= 0; $i--) {
             $bulan = now()->subMonths($i);
             $labelBulanTren[] = $bulan->translatedFormat('M Y');
-            $dataBulanTren[] = Peminjaman::whereYear('created_at', $bulan->year)
+            $dataBulanTren[] = Peminjaman::bukanSimulasi()
+                ->whereYear('created_at', $bulan->year)
                 ->whereMonth('created_at', $bulan->month)
                 ->count();
         }
 
         $peminjamanTerakhir = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas'])
+            ->bukanSimulasi()
             ->latest()
             ->take(5)
             ->get();
+
+        // tren pemakaian proyektor per minggu (gabungan semua unit) + overlay SMA rolling 4 minggu,
+        // biar keliatan efek "smoothing"-nya dibanding data mentah per minggu
+        $trenProyektor = AsetUmum::trenMingguanGabungan(8);
+        $labelMingguProyektor = $trenProyektor['label'];
+        $dataJamProyektor = $trenProyektor['jam'];
+        $dataSmaProyektor = $trenProyektor['sma'];
 
         return view('pimpinan.dashboard', compact(
             'totalKelas',
@@ -68,14 +76,14 @@ class PimpinanController extends Controller
             'jumlahOrganisasi',
             'labelBulanTren',
             'dataBulanTren',
-            'peminjamanTerakhir'
+            'peminjamanTerakhir',
+            'labelMingguProyektor',
+            'dataJamProyektor',
+            'dataSmaProyektor'
         ));
     }
 
-    // daftar lengkap semua peminjaman (kuliah, organisasi, eksternal) buat Pimpinan, read-only,
-    // dibuka dari tombol "Lihat Semua" di dashboard
-    // hitung breakdown status (menunggu/disetujui/ditolak/dibatalkan/selesai) dari 1 koleksi peminjaman,
-    // dipakai buat grafik yang berubah-ubah pas pimpinan klik tombol filter kategori
+    // breakdown status peminjaman, dipakai buat grafik filter kategori
     private function hitungStatusPeminjaman($koleksi)
     {
         return [
@@ -90,6 +98,7 @@ class PimpinanController extends Controller
     public function peminjaman()
     {
         $daftarPeminjaman = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas', 'buktiPengembalian'])
+            ->bukanSimulasi()
             ->latest()
             ->get();
 

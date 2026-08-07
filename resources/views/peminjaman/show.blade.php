@@ -21,6 +21,12 @@
                             <div class="fw-semibold">{{ $peminjaman->ormawa }}</div>
                         </div>
                     @endif
+                    @if ($peminjaman->nama_kegiatan)
+                        <div class="col-md-4">
+                            <div class="small text-muted"><i class="bi bi-calendar-event-fill"></i> Nama Kegiatan</div>
+                            <div class="fw-semibold">{{ $peminjaman->nama_kegiatan }}</div>
+                        </div>
+                    @endif
                     <div class="col-md-4">
                         <div class="small text-muted"><i class="bi bi-info-circle-fill"></i> Status</div>
                         <div>
@@ -68,6 +74,7 @@
                 <hr>
 
                 <label class="form-label fw-bold">Daftar Barang</label>
+                <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -86,6 +93,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
 
                 @if ($peminjaman->buktiPengembalian->count())
                     <hr>
@@ -113,7 +121,7 @@
                         </button>
                     @endif
 
-                    <a href="{{ route('mahasiswa.aset-umum') }}" class="btn btn-outline-secondary btn-sm">
+                    <a href="{{ route('peminjaman.riwayat') }}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
                 </div>

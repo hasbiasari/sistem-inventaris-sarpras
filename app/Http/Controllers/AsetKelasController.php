@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class AsetKelasController extends Controller
 {
-    // halaman khusus buat admin ngecek jadwal 
+    // jadwal ruangan buat admin
     public function jadwalRuangan(Request $request)
     {
         $tanggal = $request->input('tanggal') ?: now()->toDateString();
@@ -31,28 +31,61 @@ class AsetKelasController extends Controller
                         'kategori' => $p->kategori ?? 'eksternal',
                         'status' => $p->status,
                         'sampai_tanggal' => $p->tanggal_selesai?->format('d/m/Y'),
-                        'barang' => $p->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ($d->asetUmum->nomor_unit ? " ({$d->asetUmum->nomor_unit})" : '') . ' x' . $d->jumlah)->join(', '),
+                        'barang' => $p->details->map(fn ($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->join(', '),
                     ];
                 });
 
             return [
                 'id' => $kelas->id,
                 'nama_ruangan' => $kelas->nama_ruangan,
+                'gedung' => $kelas->gedung ?? 'Lainnya',
                 'jadwal' => $jadwal,
             ];
         });
 
-        return view('admin.jadwal-ruangan', compact('daftarRuangan', 'tanggal'));
+        // urutan tampil: Gedung A-D dulu, ruangan tanpa gedung ("Lainnya") di paling akhir
+        $urutanGedung = ['Gedung A', 'Gedung B', 'Gedung C', 'Gedung D', 'Lainnya'];
+        $ruanganPerGedung = $daftarRuangan->groupBy('gedung')->sortBy(function ($grup, $gedung) use ($urutanGedung) {
+            $posisi = array_search($gedung, $urutanGedung);
+
+            return $posisi === false ? count($urutanGedung) : $posisi;
+        });
+
+        // urutan ruangan buat tabel: ngikutin urutan gedung, alfabetis di dalam tiap gedung
+        $daftarRuanganUrut = $ruanganPerGedung->flatten(1);
+
+        // ringkasan per gedung buat progress bar & kartu grafik
+        $ringkasanGedung = $ruanganPerGedung->map(function ($ruanganGedung, $gedung) {
+            $total = $ruanganGedung->count();
+            $adaJadwal = $ruanganGedung->filter(fn ($r) => $r['jadwal']->isNotEmpty())->count();
+
+            return [
+                'gedung' => $gedung,
+                'total' => $total,
+                'ada_jadwal' => $adaJadwal,
+            ];
+        })->values();
+
+        $totalRuangan = $daftarRuangan->count();
+        $totalAdaJadwal = $daftarRuangan->filter(fn ($r) => $r['jadwal']->isNotEmpty())->count();
+        $totalKosong = $totalRuangan - $totalAdaJadwal;
+
+        return view('admin.jadwal-ruangan', compact(
+            'daftarRuanganUrut',
+            'ruanganPerGedung',
+            'ringkasanGedung',
+            'totalRuangan',
+            'totalAdaJadwal',
+            'totalKosong',
+            'tanggal'
+        ));
     }
 
-    // status tiap ruangan: lagi kepakai siapa atau kosong, di tanggal & jam tertentu
-    // (default: sekarang - dipakai buat status real-time. Bisa dikasih ?tanggal=&jam= buat ngecek waktu lain)
+    // status real-time tiap ruangan (kosong/kepakai), opsional ?tanggal=&jam=
     public function statusRuangan(Request $request)
     {
         $tanggal = $request->input('tanggal') ?: now()->toDateString();
-        // kalau tanggal dikasih tapi jam kosong (mode "cek jadwal 1 hari penuh", bukan cek detik ini),
-        // jam di-default ke 00:00 biar "sedang_dipakai" gak nyasar kebetulan ketiban jam sekarang di
-        // dunia nyata -- info lengkapnya tetap ada lewat jadwal_hari_ini yang independen dari jam.
+        // tanggal ada tapi jam kosong -> default 00:00 (mode cek jadwal 1 hari penuh)
         $jam = $request->filled('jam')
             ? $request->input('jam')
             : ($request->filled('tanggal') ? '00:00' : now()->format('H:i'));
@@ -61,16 +94,11 @@ class AsetKelasController extends Controller
             $titikWaktu = "{$tanggal} {$jam}";
 
             $sedangDipakai = Peminjaman::where('aset_kelas_id', $kelas->id)
-                // peminjaman multi-hari (organisasi/eksternal) dianggap SATU rentang waktu yang
-                // jalan terus dari (tanggal_pakai+jam_mulai) s.d. (tanggal_selesai+jam_selesai) --
-                // bukan jam yang sama berulang tiap hari
+                // rentang waktu kontinu (multi-hari dihitung nyambung, bukan jam yang sama tiap hari)
                 ->whereRaw('TIMESTAMP(tanggal_pakai, jam_mulai) <= ?', [$titikWaktu])
                 ->whereRaw('TIMESTAMP(COALESCE(tanggal_selesai, tanggal_pakai), jam_selesai) >= ?', [$titikWaktu])
                 ->where(function ($q) use ($tanggal, $jam) {
-                    // masih dipinjam (belum dikembalikan) -> dianggap masih dipakai selama masih
-                    // dalam rentang jam rencana. Kalau udah dikembalikan (misal dosen gak jadi
-                    // masuk/selesai lebih cepat), baru dianggap "masih dipakai" di jam sekian
-                    // kalau emang jam kembalinya lebih telat dari jam yang lagi dicek.
+                    // udah dikembalikan tapi lebih telat dari jam yang dicek -> masih dianggap dipakai
                     $q->where('status', 'disetujui')
                       ->orWhere(function ($q2) use ($tanggal, $jam) {
                           $q2->where('status', 'selesai')
@@ -82,12 +110,10 @@ class AsetKelasController extends Controller
                 ->first();
 
             $daftarBarang = $sedangDipakai
-                ? $sedangDipakai->details->map(fn ($d) => $d->asetUmum->nama_alat . ' x' . $d->jumlah)->join(', ')
+                ? $sedangDipakai->details->map(fn ($d) => $d->asetUmum->nama_lengkap . ' x' . $d->jumlah)->join(', ')
                 : null;
 
-            // jadwal SATU HARI PENUH buat ruangan ini (bukan cuma yang lagi kepakai detik ini),
-            // biar mahasiswa bisa liat "nanti jam sekian ruangannya udah dipesen" walau sekarang masih kosong.
-            // Yang lagi kepakai SEKARANG udah ditampilin di kolom Status/Jam, jadi gak usah didobelin di sini.
+            // jadwal 1 hari penuh, di luar yang lagi kepakai sekarang (sudah ada di kolom Status/Jam)
             $jadwalHariIni = Peminjaman::where('aset_kelas_id', $kelas->id)
                 ->where('tanggal_pakai', '<=', $tanggal)
                 ->whereRaw('COALESCE(tanggal_selesai, tanggal_pakai) >= ?', [$tanggal])
@@ -99,15 +125,11 @@ class AsetKelasController extends Controller
                 ->map(fn ($p) => [
                     'jam_mulai' => substr($p->jam_mulai, 0, 5),
                     'jam_selesai' => substr($p->jam_selesai, 0, 5),
-                    // pakai accessor nama_peminjam biar aman buat booking eksternal juga
-                    // (gak punya relasi mahasiswa, cuma nama_eksternal)
                     'nama' => $p->nama_peminjam,
                     'kelas' => $p->kelas,
                     'ormawa' => $p->ormawa,
                     'kategori' => $p->kategori ?? 'eksternal',
-                    // ditampilin kalau peminjaman ini multi-hari, biar keliatan bukan cuma hari ini doang
                     'sampai_tanggal' => $p->tanggal_selesai?->format('d/m/Y'),
-                    // barang/proyektor yang ikut dibawa bareng peminjaman ruangan ini (kalau ada)
                     'barang' => $p->details->isNotEmpty()
                         ? $p->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ($d->asetUmum->nomor_unit ? " ({$d->asetUmum->nomor_unit})" : '') . ' x' . $d->jumlah)->join(', ')
                         : null,
@@ -136,7 +158,8 @@ class AsetKelasController extends Controller
             'ruangan' => $ruangan,
         ]);
     }
-    // Halaman Mahasiswa - Aset Kelas (detail status tiap ruangan, real-time)
+
+    // status ruangan buat mahasiswa
     public function mahasiswaIndex()
     {
         return view('mahasiswa.aset-kelas');
@@ -144,17 +167,27 @@ class AsetKelasController extends Controller
 
     // tampilin semua data aset kelas
     public function index(Request $request)
-{
-    $keyword = $request->input('cari');
+    {
+        $keyword = $request->input('cari');
 
-    $asetKelas = AsetKelas::when($keyword, function ($query, $keyword) {
-            $query->where('nama_ruangan', 'like', "%{$keyword}%");
-        })
-        ->orderBy('nama_ruangan')
-        ->get();
+        // urutan diinget lewat session, biar gak reset ke a-z tiap balik ke halaman ini
+        if ($request->has('urutan')) {
+            session(['urutan_aset_kelas' => $request->input('urutan')]);
+        }
+        $urutan = session('urutan_aset_kelas', 'a-z');
 
-    return view('aset-kelas.index', compact('asetKelas', 'keyword'));
-}
+        $asetKelas = AsetKelas::when($keyword, function ($query, $keyword) {
+                $query->where('nama_ruangan', 'like', "%{$keyword}%");
+            })
+            ->when($urutan === 'terbaru', function ($query) {
+                $query->orderByDesc('created_at');
+            }, function ($query) {
+                $query->orderBy('nama_ruangan');
+            })
+            ->get();
+
+        return view('aset-kelas.index', compact('asetKelas', 'keyword', 'urutan'));
+    }
 
     // form tambah aset kelas
     public function create()
@@ -167,10 +200,13 @@ class AsetKelasController extends Controller
     {
         $validated = $request->validate([
             'nama_ruangan'       => 'required|string|max:255',
-            'kapasitas'          => 'required|integer|min:1',
+            'gedung'             => 'nullable|string|max:50',
+            'kapasitas'          => 'nullable|integer|min:0',
             'jumlah_kursi'       => 'required|integer|min:0',
             'jumlah_papan_tulis' => 'required|integer|min:0',
         ]);
+
+        $validated['kapasitas'] = $validated['kapasitas'] ?? 0;
 
         AsetKelas::create($validated);
 
@@ -188,10 +224,13 @@ class AsetKelasController extends Controller
     {
         $validated = $request->validate([
             'nama_ruangan'       => 'required|string|max:255',
-            'kapasitas'          => 'required|integer|min:1',
+            'gedung'             => 'nullable|string|max:50',
+            'kapasitas'          => 'nullable|integer|min:0',
             'jumlah_kursi'       => 'required|integer|min:0',
             'jumlah_papan_tulis' => 'required|integer|min:0',
         ]);
+
+        $validated['kapasitas'] = $validated['kapasitas'] ?? 0;
 
         $asetKela->update($validated);
 

@@ -33,6 +33,12 @@
                     <span>Aset Umum</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->routeIs('admin.pemeliharaan-proyektor*') ? 'active' : '' }}">
+                <a href="{{ route('admin.pemeliharaan-proyektor') }}" class="sidebar-link">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Pemeliharaan Proyektor</span>
+                </a>
+            </li>
             <li class="sidebar-item {{ request()->routeIs('admin.mahasiswa*') ? 'active' : '' }}">
                 <a href="{{ route('admin.mahasiswa') }}" class="sidebar-link">
                     <i class="bi bi-people-fill"></i>

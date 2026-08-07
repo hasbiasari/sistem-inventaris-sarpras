@@ -16,32 +16,42 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class MahasiswaController extends Controller
 {
-    // Halaman Admin TU - List Data Mahasiswa
-   public function index(Request $request)
-{
-    $keyword = $request->input('cari');
+    // daftar mahasiswa buat Admin TU
+    public function index(Request $request)
+    {
+        $keyword = $request->input('cari');
 
-    $mahasiswas = Mahasiswa::with('user')
-        ->when($keyword, function ($query, $keyword) {
-            $query->where('nim', 'like', "%{$keyword}%")
-                  ->orWhere('nama', 'like', "%{$keyword}%")
-                  ->orWhereHas('user', function ($q) use ($keyword) {
-                      $q->where('email', 'like', "%{$keyword}%");
-                  });
-        })
-        ->orderBy('nama')
-        ->get();
+        // urutan diinget lewat session, biar gak reset ke a-z tiap balik ke halaman ini
+        if ($request->has('urutan')) {
+            session(['urutan_mahasiswa' => $request->input('urutan')]);
+        }
+        $urutan = session('urutan_mahasiswa', 'a-z');
 
-    return view('mahasiswa.index', compact('mahasiswas', 'keyword'));
-}
+        $mahasiswas = Mahasiswa::with('user')
+            ->when($keyword, function ($query, $keyword) {
+                $query->where('nim', 'like', "%{$keyword}%")
+                      ->orWhere('nama', 'like', "%{$keyword}%")
+                      ->orWhereHas('user', function ($q) use ($keyword) {
+                          $q->where('email', 'like', "%{$keyword}%");
+                      });
+            })
+            ->when($urutan === 'terbaru', function ($query) {
+                $query->orderByDesc('created_at');
+            }, function ($query) {
+                $query->orderBy('nama');
+            })
+            ->get();
 
-    // Form Tambah Mahasiswa Manual
+        return view('mahasiswa.index', compact('mahasiswas', 'keyword', 'urutan'));
+    }
+
+    // form tambah mahasiswa manual
     public function create()
     {
         return view('mahasiswa.create');
     }
 
-    // Simpan Data Mahasiswa Baru (Manual)
+    // simpan mahasiswa baru
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -67,20 +77,20 @@ class MahasiswaController extends Controller
         return redirect()->route('admin.mahasiswa')->with('success', 'Mahasiswa berhasil ditambahkan.');
     }
 
-    // Proses upload file excel buat import banyak mahasiswa sekaligus
+    // import mahasiswa dari excel
     public function import(Request $request)
-{
-    $request->validate([
-        'file_excel' => 'required|mimes:xlsx,xls',
-    ]);
+    {
+        $request->validate([
+            'file_excel' => 'required|mimes:xlsx,xls',
+        ]);
 
-    $import = new MahasiswaImport;
-    Excel::import($import, $request->file('file_excel'));
+        $import = new MahasiswaImport;
+        Excel::import($import, $request->file('file_excel'));
 
-    $pesan = "Import selesai: {$import->jumlahBaru} data baru ditambahkan, {$import->jumlahUpdate} data diupdate.";
+        $pesan = "Import selesai: {$import->jumlahBaru} data baru ditambahkan, {$import->jumlahUpdate} data diupdate.";
 
-    return redirect()->route('admin.mahasiswa')->with('success', $pesan);
-}
+        return redirect()->route('admin.mahasiswa')->with('success', $pesan);
+    }
 
     // reset password mahasiswa balik ke default (NIM)
     public function resetPassword(Mahasiswa $mahasiswa)
@@ -124,14 +134,12 @@ class MahasiswaController extends Controller
     public function destroy(Mahasiswa $mahasiswa)
     {
         $nama = $mahasiswa->nama;
-        $mahasiswa->user->delete(); // ini otomatis ikut hapus data mahasiswa juga (cascade)
+        $mahasiswa->user->delete(); // cascade ikut hapus data mahasiswa
 
         return redirect()->route('admin.mahasiswa')->with('success', 'Data ' . $nama . ' berhasil dihapus.');
     }
 
-    // tempelin JADWAL "siapa aja yang minjem hari ini (atau tanggal yang dicek)" ke tiap alat --
-    // barang sekarang dijadwalin per jam kayak ruangan, jadi ini nunjukin SEMUA peminjaman yang
-    // aktif (bukan cuma 3 terbaru) buat tanggal itu, diurutin dari jam paling pagi
+    // tempelin jadwal peminjam ke tiap alat, buat tanggal tertentu
     private function tempelPeminjamTerbaru($koleksiAlat, $tanggal = null)
     {
         $tanggalEfektif = $tanggal ?: now()->toDateString();
@@ -144,8 +152,7 @@ class MahasiswaController extends Controller
                         ->whereRaw('COALESCE(tanggal_selesai, tanggal_pakai) >= ?', [$tanggalEfektif]);
                 })->with(['peminjaman.mahasiswa', 'peminjaman.asetKelas']);
             },
-            // dipakai buat status_efektif/jumlah_tersedia_sekarang (badge Tersedia/Dipinjam) --
-            // beda dari relasi di atas karena ini presisi jam SEKARANG, bukan cuma "aktif hari ini"
+            // buat badge status_efektif/jumlah_tersedia_sekarang, presisi jam sekarang
             'peminjamanDetailAktifSekarang',
         ]);
 
@@ -170,11 +177,7 @@ class MahasiswaController extends Controller
         });
     }
 
-    // status_efektif dihitung ulang dari peminjaman yang aktif SEKARANG (bukan kolom `status`
-    // statis, yang cuma keisi manual pas aset dibuat/diedit admin dan gak pernah keupdate
-    // otomatis pas ada mahasiswa minjam/balikin alat). Dipisah jadi method sendiri biar bisa
-    // dipanggil ulang dari endpoint polling (dashboardAsetUmumData) tanpa duplikasi query,
-    // biar tile/chart di tab Dashboard ikut real-time kayak halaman Aset Umum.
+    // status_efektif dihitung ulang dari peminjaman aktif sekarang, dipakai bareng endpoint polling
     private function hitungStatusAsetUmum()
     {
         $semuaAsetUntukStatus = AsetUmum::with('peminjamanDetailAktifSekarang')->get();
@@ -186,22 +189,21 @@ class MahasiswaController extends Controller
             'pemeliharaan' => $semuaAsetUntukStatus->where('status_efektif', 'pemeliharaan')->count(),
         ];
 
-        // daftar nama tiap aset umum per status, buat drill-down pas grafik status di-klik
+        // buat drill-down pas grafik status di-klik
         $daftarAsetUmumPerStatus = $semuaAsetUntukStatus->sortBy('nama_alat')->groupBy('status_efektif')->map(function ($group) {
-            return $group->map(fn ($a) => $a->nama_alat . ($a->nomor_unit ? " ({$a->nomor_unit})" : ''))->values();
+            return $group->map(fn ($a) => $a->nama_lengkap)->values();
         });
 
         return compact('statusAset', 'daftarAsetUmumPerStatus');
     }
 
-    // endpoint polling buat tile & chart status Aset Umum di tab Dashboard, dipanggil AJAX
-    // tiap beberapa detik (sama kayak pola status-ruangan buat tab Aset Kelas)
+    // endpoint polling status aset umum buat tab Dashboard
     public function dashboardAsetUmumData()
     {
         return response()->json($this->hitungStatusAsetUmum());
     }
 
-    // Halaman Mahasiswa - Dashboard (ringkasan aset umum, aset kelas/ruangan, & peminjaman sendiri)
+    // dashboard mahasiswa: ringkasan aset & peminjaman sendiri
     public function dashboard()
     {
         $totalAsetUmum = AsetUmum::count();
@@ -217,8 +219,9 @@ class MahasiswaController extends Controller
             'ditolak' => Peminjaman::milikMahasiswa($mahasiswa->id)->where('status', 'ditolak')->count(),
         ];
 
-        // barang yang PALING SERING DIPINJAM OLEH MAHASISWA INI SENDIRI (bukan se-kampus), buat tab Peminjaman Saya
-        $rekapBarang = PeminjamanDetail::whereHas('peminjaman', fn ($q) => $q->milikMahasiswa($mahasiswa->id)->where('status', 'disetujui'))
+        // barang paling sering dipinjam mahasiswa ini, buat tab Peminjaman Saya
+        // (disetujui = lagi dipinjam, selesai = udah pernah dipinjam & balik -- dua-duanya tetap "pernah dipinjam")
+        $rekapBarang = PeminjamanDetail::whereHas('peminjaman', fn ($q) => $q->milikMahasiswa($mahasiswa->id)->whereIn('status', ['disetujui', 'selesai']))
             ->with('asetUmum')
             ->get()
             ->groupBy(fn ($d) => $d->asetUmum->nama_alat ?? 'Tidak diketahui')
@@ -226,7 +229,7 @@ class MahasiswaController extends Controller
             ->sortDesc()
             ->take(6);
 
-        // jumlah peminjaman (punya sendiri) per bulan, 6 bulan terakhir, buat grafik tren di tab Peminjaman Saya
+        // grafik tren peminjaman per bulan, 6 bulan terakhir
         $labelBulanSaya = [];
         $dataBulanSaya = [];
         for ($i = 5; $i >= 0; $i--) {
@@ -238,7 +241,7 @@ class MahasiswaController extends Controller
                 ->count();
         }
 
-        // stok per barang (top 10 terbanyak), buat grafik batang di tab Aset Umum
+        // grafik batang stok, top 10 barang
         $stokPerBarang = AsetUmum::orderByDesc('jumlah_stok')->take(10)->get(['nama_alat', 'jumlah_stok']);
 
         return view('mahasiswa.dashboard', compact(
@@ -254,16 +257,15 @@ class MahasiswaController extends Controller
         ));
     }
 
-    // Halaman Mahasiswa - Aset Umum
-   public function asetUmum()
-{
-    $semuaAlat = $this->tempelPeminjamTerbaru(AsetUmum::orderBy('nama_alat')->get());
+    // halaman aset umum buat mahasiswa
+    public function asetUmum()
+    {
+        $semuaAlat = $this->tempelPeminjamTerbaru(AsetUmum::orderBy('nama_alat')->get());
 
-    return view('mahasiswa.aset-umum', compact('semuaAlat'));
-}
+        return view('mahasiswa.aset-umum', compact('semuaAlat'));
+    }
 
-    // endpoint buat polling data stok terbaru (dipanggil otomatis tiap beberapa detik).
-    // bisa dikasih ?tanggal= buat ngecek riwayat peminjam di tanggal tertentu (bukan yang terbaru).
+    // endpoint polling stok terbaru, opsional ?tanggal=
     public function asetUmumData(Request $request)
     {
         $tanggal = $request->input('tanggal');

@@ -51,7 +51,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">📈 Jumlah Peminjaman per Bulan</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartPerBulan"></canvas>
                         </div>
                     </div>
@@ -61,7 +61,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">🏆 Barang Paling Sering Dipinjam</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartBarang"></canvas>
                         </div>
                     </div>
@@ -89,7 +89,8 @@
                         @foreach ($daftarPeminjaman as $index => $peminjaman)
                             @php
                                 $namaBarangGabungan = $peminjaman->details->map(function ($d) {
-                                    return $d->asetUmum->nama_alat ?? '-';
+                                    $alat = $d->asetUmum;
+                                    return ($alat->nama_alat ?? '-') . ($alat->nomor_unit ? " ({$alat->nomor_unit})" : '');
                                 })->join(', ');
                             @endphp
                             <tr>
@@ -173,7 +174,7 @@
                                                     <strong>Barang yang dipinjam:</strong>
                                                     <ul class="mb-2">
                                                         @foreach ($peminjaman->details as $detail)
-                                                            <li>{{ $detail->asetUmum->nama_alat ?? '-' }} x{{ $detail->jumlah }}</li>
+                                                            <li>{{ $detail->asetUmum->nama_alat ?? '-' }}{{ $detail->asetUmum->nomor_unit ? " ({$detail->asetUmum->nomor_unit})" : '' }} x{{ $detail->jumlah }}</li>
                                                         @endforeach
                                                     </ul>
                                                     @if ($peminjaman->dokumen_izin)
@@ -253,6 +254,8 @@
         const labelBarang = @json($labelBarang);
         const dataBarang = @json($dataBarang);
 
+        Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
+
         new Chart(document.getElementById('chartPerBulan'), {
             type: 'bar',
             data: {
@@ -292,6 +295,8 @@
 
         $(function () {
             $('#tabelRiwayat').DataTable({
+                responsive: true,
+                columnDefs: [{ className: 'all', targets: -1 }],
                 language: {
                     search: "Cari:",
                     lengthMenu: "Tampilkan _MENU_ data",

@@ -42,13 +42,13 @@
 
             <div class="mb-3">
                 <label>Status</label>
-                <select name="status" class="form-control">
-                    <option value="tersedia" {{ old('status') == 'tersedia' ? 'selected' : '' }}>Tersedia</option>
-                    <option value="dipinjam" {{ old('status') == 'dipinjam' ? 'selected' : '' }}>Dipinjam</option>
-                    <option value="rusak" {{ old('status') == 'rusak' ? 'selected' : '' }}>Rusak</option>
-                    <option value="pemeliharaan" {{ old('status') == 'pemeliharaan' ? 'selected' : '' }}>Pemeliharaan</option>
+                <select name="status" class="form-select">
+                    <option value="tersedia" @selected(old('status', 'tersedia') === 'tersedia')>Tersedia</option>
+                    <option value="rusak" @selected(old('status') === 'rusak')>Rusak</option>
+                    <option value="pemeliharaan" @selected(old('status') === 'pemeliharaan')>Pemeliharaan</option>
                 </select>
-                @error('status') <small class="text-danger">{{ $message }}</small> @enderror
+                <small class="text-muted">Status "Dipinjam" otomatis ngikutin data peminjaman, gak bisa dipilih di sini.</small>
+                @error('status') <small class="text-danger d-block">{{ $message }}</small> @enderror
             </div>
 
             <button type="submit" class="btn btn-primary">Simpan</button>

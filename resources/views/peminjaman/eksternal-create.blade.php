@@ -40,7 +40,7 @@
                     <hr>
 
                     <label class="form-label fw-bold"><i class="bi bi-calendar-week"></i> Tanggal & Jam Peminjaman</label>
-                    <small class="text-muted d-block mb-2">Wajib diisi -- dipakai buat ngecek ruangan/barang bentrok apa nggak di jam yang sama.</small>
+
                     <div class="row g-2 mb-2">
                         <div class="col-md-7">
                             <label class="form-label small text-muted mb-1">Pilih Ruangan <span class="fw-normal">(opsional)</span></label>
@@ -59,7 +59,7 @@
                     </div>
                     <div class="row g-2 mb-2">
                         <div class="col-md-12">
-                            <label class="form-label small text-muted mb-1">Sampai Tanggal <span class="fw-normal">(kalau acaranya beberapa hari, opsional)</span></label>
+                            <label class="form-label small text-muted mb-1">Sampai Tanggal <span class="fw-normal"></span></label>
                             <input type="date" name="tanggal_selesai" id="input-tanggal-selesai" class="form-control"
                                    min="{{ now()->toDateString() }}">
                         </div>
@@ -106,6 +106,7 @@
                             <div class="col-md-3">
                                 <input type="number" name="barang[0][jumlah]" class="form-control"
                                        placeholder="Jumlah" min="1" value="1">
+                                <div class="small text-danger d-none pesan-jumlah-melebihi"></div>
                             </div>
                             <div class="col-md-2 text-md-end">
                                 <button type="button" class="btn btn-outline-danger btn-hapus-barang" data-bs-toggle="tooltip" title="Hapus baris ini">
@@ -120,7 +121,7 @@
                     </button>
 
                     <div>
-                        <button type="submit" class="btn btn-success">Simpan Booking</button>
+                        <button type="submit" id="btn-submit-booking" class="btn btn-success">Simpan Booking</button>
                     </div>
 
                 </form>
@@ -151,6 +152,7 @@
             <div class="col-md-3">
                 <input type="number" name="barang[INDEX][jumlah]" class="form-control"
                        placeholder="Jumlah" min="1" value="1">
+                <div class="small text-danger d-none pesan-jumlah-melebihi"></div>
             </div>
             <div class="col-md-2 text-md-end">
                 <button type="button" class="btn btn-outline-danger btn-hapus-barang" data-bs-toggle="tooltip" title="Hapus baris ini">
@@ -170,6 +172,7 @@
             document.getElementById('daftar-barang').insertAdjacentHTML('beforeend', barisBaru);
             indexBarang++;
             refreshStokBarang();
+            updateSemuaOpsiStok();
         });
 
         document.getElementById('daftar-barang').addEventListener('click', function (e) {
@@ -177,7 +180,97 @@
                 const jumlahBaris = document.querySelectorAll('.baris-barang').length;
                 if (jumlahBaris > 1) {
                     e.target.closest('.baris-barang').remove();
+                    updateSemuaOpsiStok();
                 }
+            }
+        });
+
+        // barang yang sama gak boleh diambil melebihi stok kalau dipilih di beberapa baris sekaligus
+        function getStokAsli(id) {
+            const opsi = document.querySelector('.select-barang option[data-id="' + id + '"]');
+            return opsi ? (parseInt(opsi.dataset.stok, 10) || 0) : 0;
+        }
+
+        function getDipilihDiBarisLain(id, barisSaatIni) {
+            let total = 0;
+            document.querySelectorAll('.baris-barang').forEach(function (baris) {
+                if (baris === barisSaatIni) return;
+                const select = baris.querySelector('.select-barang');
+                if (select.value !== id) return;
+                total += parseInt(baris.querySelector('input[type="number"]').value, 10) || 0;
+            });
+            return total;
+        }
+
+        function updateSemuaOpsiStok() {
+            document.querySelectorAll('.baris-barang').forEach(function (baris) {
+                const select = baris.querySelector('.select-barang');
+                const inputJumlah = baris.querySelector('input[type="number"]');
+                const idTerpilih = select.value;
+
+                Array.from(select.options).forEach(function (opsi) {
+                    if (!opsi.dataset.id) return;
+                    const id = opsi.dataset.id;
+                    const sisa = Math.max(0, getStokAsli(id) - getDipilihDiBarisLain(id, baris));
+                    opsi.textContent = opsi.dataset.nama + ' - stok: ' + sisa;
+                    opsi.disabled = sisa <= 0 && opsi.value !== idTerpilih;
+                });
+
+                if (idTerpilih) {
+                    const sisaTerpilih = Math.max(0, getStokAsli(idTerpilih) - getDipilihDiBarisLain(idTerpilih, baris));
+                    inputJumlah.max = sisaTerpilih;
+                    if (parseInt(inputJumlah.value, 10) > sisaTerpilih) {
+                        inputJumlah.value = Math.max(1, sisaTerpilih);
+                    }
+                }
+            });
+
+            updateTombolSubmit();
+        }
+
+        // validasi + tampilin pesan error kalau jumlah di satu baris melebihi sisa stok (udah dikurangi baris lain)
+        function cekJumlahBarisValid(baris) {
+            const select = baris.querySelector('.select-barang');
+            const inputJumlah = baris.querySelector('input[type="number"]');
+            const pesanError = baris.querySelector('.pesan-jumlah-melebihi');
+            const idTerpilih = select.value;
+
+            if (!idTerpilih) {
+                pesanError.classList.add('d-none');
+                inputJumlah.classList.remove('is-invalid');
+                return true;
+            }
+
+            const sisa = Math.max(0, getStokAsli(idTerpilih) - getDipilihDiBarisLain(idTerpilih, baris));
+            const jumlah = parseInt(inputJumlah.value, 10) || 0;
+            const melebihi = jumlah > sisa;
+
+            pesanError.textContent = melebihi ? `Jumlah melebihi stok tersedia (sisa: ${sisa})` : '';
+            pesanError.classList.toggle('d-none', !melebihi);
+            inputJumlah.classList.toggle('is-invalid', melebihi || jumlah < 1);
+
+            return !melebihi && jumlah >= 1;
+        }
+
+        // disable tombol submit selama masih ada baris yang jumlahnya melebihi stok
+        function updateTombolSubmit() {
+            let adaInvalid = false;
+            document.querySelectorAll('.baris-barang').forEach(function (baris) {
+                if (! cekJumlahBarisValid(baris)) adaInvalid = true;
+            });
+            document.getElementById('btn-submit-booking').disabled = adaInvalid;
+        }
+
+        document.getElementById('daftar-barang').addEventListener('change', function (e) {
+            if (e.target.classList.contains('select-barang') || e.target.matches('input[type="number"]')) {
+                updateSemuaOpsiStok();
+            }
+        });
+
+        // langsung kasih tau pas lagi ngetik jumlah, tombol submit ke-disable otomatis kalau ngelebihin
+        document.getElementById('daftar-barang').addEventListener('input', function (e) {
+            if (e.target.matches('input[type="number"]')) {
+                updateTombolSubmit();
             }
         });
 
@@ -187,8 +280,7 @@
         const inputJamMulai = document.getElementById('input-jam-mulai');
         const inputJamSelesai = document.getElementById('input-jam-selesai');
 
-        // refresh sisa stok tiap barang berdasarkan tanggal+jam yang lagi dipilih -- opsi barang
-        // yang penuh di jam itu (tersedia <= 0) di-disable, biar gak bisa kepilih
+        // refresh sisa stok, disable opsi barang yang stoknya habis
         function refreshStokBarang() {
             const tanggalPakai = inputTanggalPakai.value;
             const jamMulai = inputJamMulai.value;
@@ -206,15 +298,13 @@
             fetch('{{ route('peminjaman.cek-stok-barang') }}?' + params.toString())
                 .then(res => res.json())
                 .then(function (stokPerBarang) {
+                    // update stok asli dari server dulu, baru dikurangi barang yang udah dipilih di baris lain lewat updateSemuaOpsiStok()
                     document.querySelectorAll('.select-barang option[data-id]').forEach(function (opsi) {
                         const id = opsi.dataset.id;
                         if (!(id in stokPerBarang)) return;
-
-                        const tersedia = Math.max(0, stokPerBarang[id]);
-                        opsi.dataset.stok = tersedia;
-                        opsi.textContent = opsi.dataset.nama + ' - stok: ' + tersedia;
-                        opsi.disabled = tersedia <= 0 && !opsi.selected;
+                        opsi.dataset.stok = Math.max(0, stokPerBarang[id]);
                     });
+                    updateSemuaOpsiStok();
                 })
                 .catch(() => {});
         }
@@ -226,7 +316,7 @@
             }
         });
 
-        // cek bentrok ruangan secara real-time (AJAX), sama kayak di form Ajukan Peminjaman mahasiswa
+        // cek bentrok ruangan real-time
         const peringatanBentrok = document.getElementById('peringatan-ruangan-bentrok');
         let bentrokAktif = false;
 
@@ -284,6 +374,12 @@
             if (bentrokAktif) {
                 e.preventDefault();
                 Swal.fire({ icon: 'warning', title: 'Ruangan bentrok', text: 'Ruangan ini sudah dipakai/dipesan pada tanggal & jam segitu. Pilih ruangan atau jam lain dulu.' });
+                return;
+            }
+            // jaga-jaga: cegah submit lewat Enter kalau ada jumlah yang masih melebihi stok (tombolnya sendiri udah didisable)
+            if (document.querySelector('#daftar-barang input[type="number"].is-invalid')) {
+                e.preventDefault();
+                Swal.fire({ icon: 'error', title: 'Jumlah tidak valid', text: 'Ada jumlah barang yang melebihi stok tersedia. Perbaiki dulu sebelum menyimpan.' });
             }
         });
     </script>

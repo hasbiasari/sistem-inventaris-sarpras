@@ -38,7 +38,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">Kuliah vs Organisasi</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartKategoriPeminjaman"></canvas>
                         </div>
                     </div>
@@ -48,7 +48,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">Tren Peminjaman per Bulan</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartTrenPeminjaman"></canvas>
                         </div>
                     </div>
@@ -59,12 +59,11 @@
         {{-- peminjaman terakhir --}}
         <div class="card mb-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h6 class="fw-bold mb-0">Peminjaman Terakhir</h6>
                     <a href="{{ route('pimpinan.peminjaman') }}" class="btn btn-sm btn-success">Lihat Semua</a>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0">
+                    <table class="table table-bordered mb-0" id="tabelPeminjamanTerakhir">
                         <thead class="table-light">
                             <tr>
                                 <th>Nama Peminjam</th>
@@ -96,7 +95,7 @@
                                         @endif
                                         @if ($peminjaman->details->count())
                                             <div class="small text-muted">
-                                                {{ $peminjaman->details->map(fn($d) => ($d->asetUmum->nama_alat ?? '-') . ' x' . $d->jumlah)->join(', ') }}
+                                                {{ $peminjaman->details->map(fn($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->join(', ') }}
                                             </div>
                                         @endif
                                         @if (! $peminjaman->asetKelas && ! $peminjaman->details->count())
@@ -113,6 +112,15 @@
                             @endforelse
                         </tbody>
                     </table>
+            </div>
+        </div>
+
+        {{-- tren pemakaian proyektor (SMA) --}}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">🎥 Tren Pemakaian Proyektor per Minggu (SMA)</h6>
+                <div class="chart-box" style="height: 280px;">
+                    <canvas id="chartTrenProyektor"></canvas>
                 </div>
             </div>
         </div>
@@ -122,7 +130,7 @@
         {{-- ringkasan angka aset --}}
         <h5 class="mb-3">Pemantauan Aset</h5>
         <div class="row mb-4">
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3 mb-3">
                 <div class="card text-center shadow-sm">
                     <div class="card-body">
                         <h6 class="text-muted">Total Ruang Kelas</h6>
@@ -130,7 +138,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3 mb-3">
                 <div class="card text-center shadow-sm">
                     <div class="card-body">
                         <h6 class="text-muted">Total Mahasiswa</h6>
@@ -138,7 +146,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3 mb-3">
                 <div class="card text-center shadow-sm">
                     <div class="card-body">
                         <h6 class="text-muted">Total Aset Umum</h6>
@@ -146,7 +154,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-6 col-md-3 mb-3">
                 <div class="card text-center shadow-sm">
                     <div class="card-body">
                         <h6 class="text-muted">Alat Tersedia</h6>
@@ -158,17 +166,17 @@
 
         {{-- breakdown status --}}
         <div class="row mb-4">
-            <div class="col-md-4 mb-3">
+            <div class="col-6 col-md-4 mb-3">
                 <div class="alert alert-warning mb-0 text-center">
                     Dipinjam: <b>{{ $alatDipinjam }}</b>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-6 col-md-4 mb-3">
                 <div class="alert alert-danger mb-0 text-center">
                     Rusak: <b>{{ $alatRusak }}</b>
                 </div>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-6 col-md-4 mb-3">
                 <div class="alert alert-secondary mb-0 text-center">
                     Pemeliharaan: <b>{{ $alatPemeliharaan }}</b>
                 </div>
@@ -179,7 +187,6 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h6 class="fw-bold mb-3">Detail Aset Umum</h6>
-                <div class="table-responsive">
                     <table class="table table-bordered mb-0" id="tabelDetailAset">
                         <thead class="table-light">
                             <tr>
@@ -215,7 +222,6 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
 
@@ -227,6 +233,7 @@
             const modeGelap = document.body.classList.contains('theme-dark');
             Chart.defaults.color = modeGelap ? '#e9ecef' : '#495057';
             Chart.defaults.borderColor = modeGelap ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
 
             const labelBulanTren = @json($labelBulanTren);
             const dataBulanTren = @json($dataBulanTren);
@@ -266,10 +273,63 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
+            const labelMingguProyektor = @json($labelMingguProyektor);
+            const dataJamProyektor = @json($dataJamProyektor);
+            const dataSmaProyektor = @json($dataSmaProyektor);
+            // legend dikecilin manual khusus HP -- di web tetep ukuran normal (bawaan Chart.js)
+            const legendKecil = window.innerWidth <= 576;
+
+            new Chart(document.getElementById('chartTrenProyektor'), {
+                data: {
+                    labels: labelMingguProyektor,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Jam Pakai per Minggu (Semua Unit)',
+                            data: dataJamProyektor,
+                            backgroundColor: '#a8d5c2',
+                            borderRadius: 6,
+                            order: 2,
+                        },
+                        {
+                            type: 'line',
+                            label: 'SMA (rata-rata 4 minggu)',
+                            data: dataSmaProyektor,
+                            borderColor: '#0F6B4C',
+                            backgroundColor: '#0F6B4C',
+                            tension: 0.3,
+                            pointRadius: 3,
+                            order: 1,
+                        },
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: legendKecil ? { boxWidth: 12, font: { size: 10 } } : {},
+                        },
+                    },
+                }
+            });
         });
 
         $(function () {
+            // di layar lebar kolomnya lengkap semua (ruangnya cukup), cuma di HP yang ngelipet
+            // otomatis ngikut lebar layar -- tabel preview ini gak butuh paging/search sendiri.
+            $('#tabelPeminjamanTerakhir').DataTable({
+                responsive: true,
+                paging: false,
+                searching: false,
+                info: false,
+                ordering: false,
+            });
+
             $('#tabelDetailAset').DataTable({
+                responsive: true,
                 pageLength: 5,
                 lengthMenu: [5, 10, 25, 50],
                 language: {

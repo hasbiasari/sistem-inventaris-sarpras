@@ -12,7 +12,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3" id="judulChartDistribusi">Distribusi Kategori</h6>
-                        <div style="height: 220px;">
+                        <div class="chart-box" style="height: 220px;">
                             <canvas id="chartDistribusiKategori"></canvas>
                         </div>
                     </div>
@@ -67,7 +67,7 @@
 
         <div class="card">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h6 class="fw-bold mb-0">Daftar Peminjaman</h6>
                     <a href="{{ route('pimpinan.dashboard') }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-arrow-left"></i> Kembali ke Dashboard
@@ -152,7 +152,7 @@
                                                     <strong>Barang yang dipinjam:</strong>
                                                     <ul class="mb-2">
                                                         @forelse ($peminjaman->details as $detail)
-                                                            <li>{{ $detail->asetUmum->nama_alat ?? '-' }} x{{ $detail->jumlah }}</li>
+                                                            <li>{{ $detail->asetUmum->nama_lengkap ?? '-' }} x{{ $detail->jumlah }}</li>
                                                         @empty
                                                             <li class="text-muted">Tidak ada barang, cuma pinjam ruangan.</li>
                                                         @endforelse
@@ -240,6 +240,7 @@
             const modeGelap = document.body.classList.contains('theme-dark');
             Chart.defaults.color = modeGelap ? '#e9ecef' : '#495057';
             Chart.defaults.borderColor = modeGelap ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
 
             chartDistribusi = new Chart(document.getElementById('chartDistribusiKategori'), {
                 type: 'doughnut',
@@ -262,6 +263,8 @@
 
         $(function () {
             const table = $('#tabelPeminjaman').DataTable({
+                responsive: true,
+                columnDefs: [{ className: 'all', targets: -1 }],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 order: [],

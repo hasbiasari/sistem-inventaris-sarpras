@@ -15,9 +15,7 @@ class AdminDashboardController extends Controller
         $totalAsetKelas = AsetKelas::count();
         $totalAsetUmum = AsetUmum::count();
 
-        // status_efektif dihitung ulang dari peminjaman yang aktif SEKARANG (bukan kolom `status`
-        // statis, yang cuma keisi manual pas aset dibuat/diedit admin dan gak pernah keupdate
-        // otomatis pas ada mahasiswa minjam/balikin alat)
+        // status_efektif dihitung ulang dari peminjaman yang aktif sekarang
         $semuaAsetUntukStatus = AsetUmum::with('peminjamanDetailAktifSekarang')->get();
         $statusAset = [
             'tersedia' => $semuaAsetUntukStatus->where('status_efektif', 'tersedia')->count(),
@@ -28,7 +26,13 @@ class AdminDashboardController extends Controller
 
         $peminjamanMenunggu = Peminjaman::where('kategori', 'organisasi')->where('status', 'menunggu')->count();
 
-        // 5 pengajuan organisasi terbaru yang masih perlu ditindaklanjuti admin
+        // ringkasan pemeliharaan proyektor (detail lengkapnya ada di halaman Pemeliharaan Proyektor)
+        $jumlahProyektorPerluPemeliharaan = AsetUmum::where('nama_alat', 'Proyektor')
+            ->get()
+            ->filter(fn ($alat) => $alat->perlu_pemeliharaan)
+            ->count();
+
+        // 5 pengajuan organisasi terbaru yang perlu ditindaklanjuti
         $daftarMenunggu = Peminjaman::with(['mahasiswa', 'details.asetUmum'])
             ->where('kategori', 'organisasi')
             ->where('status', 'menunggu')
@@ -36,33 +40,32 @@ class AdminDashboardController extends Controller
             ->take(5)
             ->get();
 
-        // booking terbaru (organisasi + eksternal) biar admin langsung keliatan ormawa/pihak
-        // eksternal mana aja yang baru booking, tanpa buka menu lain. Kuliah gak diikutin karena
-        // auto-ACC & volumenya tinggi, kurang perlu dipantau di ringkasan ini.
+        // booking organisasi + eksternal terbaru (kuliah gak diikutin, auto-ACC)
         $bookingTerakhir = Peminjaman::where(function ($q) {
                 $q->where('kategori', 'organisasi')
                   ->orWhere('jenis_peminjam', 'eksternal');
             })
+            ->bukanSimulasi()
             ->with(['mahasiswa', 'details.asetUmum', 'asetKelas'])
             ->latest()
             ->take(8)
             ->get();
 
-        // booking terbaru kategori kuliah, dipisah dari organisasi/eksternal karena
-        // volumenya beda dan auto-ACC (bukan yang perlu ditindaklanjuti)
+        // booking kuliah terbaru, dipisah karena auto-ACC
         $bookingKuliahTerakhir = Peminjaman::where('kategori', 'kuliah')
             ->with(['mahasiswa', 'details.asetUmum', 'asetKelas'])
             ->latest()
             ->take(8)
             ->get();
 
-        // grafik: jumlah semua peminjaman per bulan, 6 bulan terakhir
+        // grafik jumlah peminjaman per bulan, 6 bulan terakhir
         $labelBulan = [];
         $dataPerBulan = [];
         for ($i = 5; $i >= 0; $i--) {
             $bulan = now()->subMonths($i);
             $labelBulan[] = $bulan->translatedFormat('M Y');
-            $dataPerBulan[] = Peminjaman::whereYear('created_at', $bulan->year)
+            $dataPerBulan[] = Peminjaman::bukanSimulasi()
+                ->whereYear('created_at', $bulan->year)
                 ->whereMonth('created_at', $bulan->month)
                 ->count();
         }
@@ -77,7 +80,8 @@ class AdminDashboardController extends Controller
             'bookingTerakhir',
             'bookingKuliahTerakhir',
             'labelBulan',
-            'dataPerBulan'
+            'dataPerBulan',
+            'jumlahProyektorPerluPemeliharaan'
         ));
     }
 }

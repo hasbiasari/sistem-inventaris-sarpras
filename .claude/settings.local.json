@@ -7,7 +7,8 @@
       "Bash(php -r ' *)",
       "Bash(python3 -c ' *)",
       "Bash(curl -s \"http://localhost/sistem-inventaris-sarpras/public/css/mazer-green-theme.css\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost/sistem-inventaris-sarpras/public/css/mazer-green-theme.css\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost/sistem-inventaris-sarpras/public/css/mazer-green-theme.css\")",
+      "Bash(php -l \"/c/xampp/htdocs/sistem-inventaris-sarpras/app/Http/Controllers/PeminjamanController.php\")"
     ]
   }
 }

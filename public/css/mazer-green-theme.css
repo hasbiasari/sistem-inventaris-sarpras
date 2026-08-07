@@ -90,6 +90,21 @@ body.theme-dark .form-check-input:checked {
     box-shadow: 0 2px 5px rgba(15, 107, 76, .3);
 }
 
+/* Tombol pagination (angka & panah prev/next) disamain ukurannya jadi kotak kecil senada --
+   defaultnya tombol panah (isinya ikon) lebih gede dari tombol angka karena padding beda. */
+.pagination .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.1rem;
+    height: 2.1rem;
+    padding: 0 .4rem;
+}
+
+.pagination .page-link i {
+    font-size: .8rem;
+}
+
 /* Komponen yang set variabelnya sendiri per-selector */
 .list-group,
 body.theme-dark .list-group {
@@ -168,20 +183,182 @@ body.theme-dark .sidebar-wrapper .menu .sidebar-title {
 }
 
 .notif-dropdown-menu {
-    max-height: 380px;
-    overflow-y: auto;
+    border: none;
+    border-radius: .75rem;
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .12);
+    overflow: hidden;
     padding: 0;
-    width: 320px;
+    width: 340px;
+    z-index: 1030;
+}
+
+.notif-dropdown-header {
+    align-items: center;
+    background: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    display: flex;
+    justify-content: space-between;
+    padding: .85rem 1rem;
+}
+
+.notif-dropdown-header .notif-title {
+    font-size: .95rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.notif-dropdown-header .notif-tandai-semua {
+    background: none;
+    border: none;
+    color: #0F6B4C;
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 0;
+}
+
+.notif-dropdown-header .notif-tandai-semua:disabled {
+    color: #adb5bd;
+    cursor: default;
+}
+
+.notif-list {
+    max-height: 360px;
+    overflow-y: auto;
 }
 
 .notif-list .notif-item {
-    font-size: .85rem;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(0, 0, 0, .05);
+    display: flex;
+    gap: .65rem;
+    padding: .7rem 1rem;
+    position: relative;
+    text-decoration: none;
     white-space: normal;
 }
 
-.notif-item-belum-dibaca {
-    background-color: rgba(15, 107, 76, .08);
+.notif-list .notif-item:last-child {
+    border-bottom: none;
+}
+
+@media screen and (max-width: 576px) {
+    .notif-dropdown-menu {
+        width: 260px;
+    }
+
+    .notif-dropdown-header {
+        padding: .65rem .8rem;
+    }
+
+    .notif-dropdown-header .notif-title {
+        font-size: .85rem;
+    }
+
+    .notif-dropdown-header .notif-tandai-semua {
+        font-size: .68rem;
+    }
+
+    .notif-list {
+        max-height: 260px;
+    }
+
+    .notif-list .notif-item {
+        gap: .5rem;
+        padding: .55rem .8rem;
+    }
+
+    .notif-list .notif-item-icon {
+        font-size: .8rem;
+    }
+
+    .notif-list .notif-item-pesan {
+        font-size: .78rem;
+    }
+
+    .notif-list .notif-item-waktu {
+        font-size: .68rem;
+    }
+}
+
+.notif-list .notif-item:hover {
+    background-color: rgba(15, 107, 76, .06);
+}
+
+.notif-item-icon {
+    align-items: center;
+    background: rgba(15, 107, 76, .1);
+    border-radius: 50%;
+    color: #0F6B4C;
+    display: flex;
+    flex-shrink: 0;
+    font-size: .9rem;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+}
+
+.notif-item-belum-dibaca .notif-item-icon {
+    background: #0F6B4C;
+    color: #fff;
+}
+
+.notif-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.notif-item-pesan {
+    color: #495057;
+    font-size: .82rem;
+    line-height: 1.35;
+    margin: 0;
+}
+
+.notif-item-belum-dibaca .notif-item-pesan {
+    color: #212529;
     font-weight: 600;
+}
+
+.notif-item-waktu {
+    color: #adb5bd;
+    display: block;
+    font-size: .72rem;
+    margin-top: .2rem;
+}
+
+.notif-item-dot {
+    background: #0F6B4C;
+    border-radius: 50%;
+    flex-shrink: 0;
+    height: 8px;
+    margin-top: .35rem;
+    width: 8px;
+}
+
+.notif-kosong {
+    font-size: .85rem;
+}
+
+body.theme-dark .notif-dropdown-header {
+    background: #232333;
+    border-bottom-color: rgba(255, 255, 255, .08);
+}
+
+body.theme-dark .notif-list .notif-item {
+    border-bottom-color: rgba(255, 255, 255, .06);
+}
+
+body.theme-dark .notif-list .notif-item:hover {
+    background-color: rgba(255, 255, 255, .05);
+}
+
+body.theme-dark .notif-item-pesan {
+    color: #ced4da;
+}
+
+body.theme-dark .notif-item-belum-dibaca .notif-item-pesan {
+    color: #fff;
 }
 
 /* ===== Kartu statistik gaya lingkaran ikon berwarna (dipakai di halaman Laporan,
@@ -218,6 +395,41 @@ body.theme-dark .sidebar-wrapper .menu .sidebar-title {
 .stat-card-v2 .stat-label {
     color: #7c8db5;
     font-size: 0.8rem;
+}
+
+/* lingkaran ikon + angka statistik: dikecilin di layar HP biar gak makan tempat
+   (dipakai di Laporan, Riwayat Peminjaman, Peminjaman Organisasi, & Dashboard Admin) */
+@media screen and (max-width: 576px) {
+    .stat-card-v2 {
+        gap: 0.65rem;
+        padding: 1rem !important;
+    }
+
+    .stat-icon-circle {
+        width: 42px;
+        height: 42px;
+        font-size: 1.1rem;
+    }
+
+    .stat-card-v2 .stat-angka {
+        font-size: 1.25rem;
+    }
+
+    .stat-card-v2 .stat-label {
+        font-size: 0.72rem;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .stat-icon-circle {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+    }
+
+    .stat-card-v2 .stat-angka {
+        font-size: 1.1rem;
+    }
 }
 
 /* ===== Dashboard mahasiswa: tab selector + kartu KPI solid (gaya BI dashboard) ===== */
@@ -365,26 +577,348 @@ body.theme-dark .table-light th {
     color: #fff;
 }
 
-/* biar tampilan di zoom browser 100% keliatan lebih compact kayak zoom 90%. SENGAJA gak pakai
-   properti `zoom` -- itu bentrok sama sidebar yang position:fixed + height:100vh (bikin sidebar
-   "kedetach"/keatasan dari kontennya di banyak browser). Jadi dikecilin manual lewat font-size
-   root (ngefek ke semua ukuran rem: padding, gap, badge, tombol, dst) + lebar sidebar & margin
-   konten disesuaikan manual (itu satu-satunya ukuran fixed dalam px, bukan rem, di template ini).
-   Base 300px * 0.9 = 270px. */
+/* Ukuran teks/tombol/badge/padding (semua yang pakai satuan rem) ngikutin lebar layar secara
+   HALUS/PROPORSIONAL -- bukan loncat di beberapa titik ukuran tetap, dan SENGAJA berlaku juga di
+   desktop/PC (bukan cuma HP) -- biar di browser zoom 100% tampilannya udah keliatan compact kayak
+   di-zoom-out ke ~80% manual, gak perlu user zoom-out sendiri. HP kecil (<=320px) dapet ukuran
+   paling kecil (52%), PC/layar lebar (>=768px) mentok di 80%, di antaranya nyusut/ngegede pelan-
+   pelan ngikutin lebar layar asli device (BUKAN zoom browser -- zoom gak ngubah lebar layar jadi
+   gak kepengaruh rumus ini, hasilnya konsisten di device manapun). Sengaja gak pakai properti
+   `zoom` -- itu bentrok sama sidebar yang position:fixed + height:100vh (bikin sidebar "kedetach"
+   dari kontennya di banyak browser). */
 html {
-    font-size: 90%;
+    font-size: clamp(8.32px, calc(8.32px + (12.8px - 8.32px) * ((100vw - 320px) / (768px - 320px))), 12.8px);
 }
 
+.sidebar-wrapper,
+body.theme-dark .sidebar-wrapper {
+    width: 210px;
+}
+
+#main,
+body.theme-dark #main {
+    margin-left: 210px;
+}
+
+/* Sebagian halaman bungkus isinya pakai `.container` (Bootstrap kasih max-width & bikin ke-tengah
+   di layar lebar), sebagian lain pakai `.container-fluid` (full lebar). Header & footer sendiri
+   SELALU full lebar (nempel ke padding #main). Gara-gara beda itu, konten sebagian halaman jadi
+   lebih sempit/ketengah dibanding bell notifikasi & footer -- kelihatan "gak sejajar". Disamain
+   semua jadi full lebar biar konsisten sejajar di semua halaman & semua ukuran layar. */
+#main .container {
+    max-width: 100%;
+}
+
+/* Jaring pengaman biar footer PASTI nempel di paling bawah layar (bukan ngambang di tengah kalau
+   kontennya pendek) -- `margin-top: auto` di flex item terakhir bakal ngedorong dia abis semua
+   sisa ruang kosong, gak gantung ke behavior flex-grow elemen lain di atasnya. */
+footer {
+    margin-top: auto;
+}
+
+/* Sidebar (menu hamburger di HP) z-index bawaan Mazer cuma 10 -- kalah jauh sama header tabel
+   `sticky-top` Bootstrap (1020), jadi pas sidebar dibuka di HP, header tabel ijo bisa nembus/
+   nutupin sidebar-nya. Dinaikin di sini biar sidebar selalu di atas konten halaman apapun. */
 .sidebar-wrapper {
-    width: 270px;
+    z-index: 1045;
 }
 
-#main {
-    margin-left: 270px;
+/* Toolbar atas halaman (tombol "+Tambah" & kotak pencarian/urutan) -- class ini gak punya CSS
+   bawaan sama sekali, jadi cuma numpuk polos tanpa jarak. Dikasih flex + gap biar rapi, dan
+   ditumpuk vertikal (bukan berdempetan) di layar sempit. */
+.page-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.toolbar-search .input-group {
+    flex-wrap: wrap;
+}
+
+.toolbar-search .input-group > * {
+    flex: 1 1 auto;
+}
+
+@media screen and (max-width: 576px) {
+    .page-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .toolbar-actions,
+    .toolbar-search {
+        width: 100%;
+    }
+}
+
+/* Semua modal/popup detail (Detail Peminjaman, Detail Jadwal Ruangan, Edit Jam Pakai, dll) di
+   semua role (mahasiswa/admin/pimpinan) -- ditengahin secara vertikal (bawaan Bootstrap nempel
+   di atas kalau gak dikasih class `.modal-dialog-centered` manual, dan gak semua modal di app ini
+   dikasih). Di HP juga dikecilin dikit lebarnya biar gak mepet ke pinggir banget. */
+.modal-dialog {
+    align-items: center;
+    display: flex;
+    min-height: calc(100% - 1rem);
+}
+
+@media screen and (max-width: 576px) {
+    .modal-dialog {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 92%;
+    }
 }
 
 @media screen and (max-width: 1199px) {
-    #main {
+    #main,
+    body.theme-dark #main {
         margin-left: 0;
+    }
+}
+
+/* Footer aslinya pakai float-start/float-end (Bootstrap) buat naro "STT Cipasung" di kiri &
+   "Powered by MHA" di kanan. Float gampang berantakan/nyangkut di posisi aneh kalau ruangnya
+   sempit (layar HP kecil) -- diganti flexbox + wrap biar dua bagian itu tetep rapi: sejajar
+   kiri-kanan kalau muat, atau ketumpuk full-width kalau kesempitan. */
+#main > footer {
+    width: 100%;
+}
+
+footer .footer.clearfix {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    justify-content: space-between;
+    width: 100%;
+}
+
+footer .footer.clearfix .float-start,
+footer .footer.clearfix .float-end {
+    float: none !important;
+}
+
+/* Bootstrap `.clearfix` nambahin pseudo-element ::after (buat clear:both pas dia masih
+   pakai float). Begitu parent-nya jadi flex container, ::after itu ikut dihitung sebagai
+   flex item ke-3 yang gak keliatan -- gara-gara itu "Powered by MHA" (float-end) kedorong
+   ke tengah sama justify-content:space-between (ke-bagi rata ke 3 slot), bukan ke ujung
+   kanan. Dimatiin di sini biar cuma 2 flex item asli yang keitung. */
+footer .footer.clearfix::after {
+    content: none;
+}
+
+/* Link di footer ("STT Cipasung", "MHA") -> Mazer nge-reset warna & underline link jadi
+   ikut warna teks biasa (text-muted), jadi gak keliatan bisa diklik. Ditandingin di sini
+   pakai selector ".footer a" biar menang, plus dark mode biar tetep kebaca di background gelap. */
+.footer a {
+    color: #0F6B4C;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.footer a:hover,
+.footer a:focus {
+    color: #0c5a40;
+    text-decoration: underline;
+}
+
+body.theme-dark .footer a {
+    color: #3ddc97;
+}
+
+body.theme-dark .footer a:hover,
+body.theme-dark .footer a:focus {
+    color: #5ee6ac;
+    text-decoration: underline;
+}
+
+/* ===== Halaman Pemeliharaan Proyektor ===== */
+
+/* kartu ringkasan status: putih + aksen border-left berwarna (bukan solid penuh kayak .stat-tile) */
+.stat-accent-card {
+    align-items: center;
+    background: #fff;
+    border-left: 5px solid transparent;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(20, 30, 50, .07);
+    display: flex;
+    gap: .9rem;
+    padding: 1.1rem 1.35rem;
+}
+
+.stat-accent-card.accent-success { border-left-color: #0F6B4C; }
+.stat-accent-card.accent-warning { border-left-color: #DDA23F; }
+.stat-accent-card.accent-danger { border-left-color: #CD5A5A; }
+
+.stat-accent-icon {
+    align-items: center;
+    border-radius: 50%;
+    display: flex;
+    flex-shrink: 0;
+    font-size: 1.15rem;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+}
+
+.stat-accent-icon.accent-success { background: rgba(15, 107, 76, .1); color: #0F6B4C; }
+.stat-accent-icon.accent-warning { background: rgba(221, 162, 63, .15); color: #DDA23F; }
+.stat-accent-icon.accent-danger { background: rgba(205, 90, 90, .12); color: #CD5A5A; }
+
+.stat-accent-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-accent-label {
+    color: #7c8db5;
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+body.theme-dark .stat-accent-card {
+    background: #232333;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+}
+
+body.theme-dark .stat-accent-label {
+    color: #adb5bd;
+}
+
+/* kartu ringkasan status (Normal/Perlu Perhatian/Perlu Pemeliharaan) dikecilin di HP,
+   senada perlakuan .stat-icon-circle */
+@media screen and (max-width: 576px) {
+    .stat-accent-card {
+        gap: .65rem;
+        padding: .85rem 1rem;
+    }
+
+    .stat-accent-icon {
+        width: 36px;
+        height: 36px;
+        font-size: .95rem;
+    }
+
+    .stat-accent-value {
+        font-size: 1.3rem;
+    }
+
+    .stat-accent-label {
+        font-size: .75rem;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .stat-accent-icon {
+        width: 32px;
+        height: 32px;
+        font-size: .85rem;
+    }
+
+    .stat-accent-value {
+        font-size: 1.15rem;
+    }
+}
+
+/* card grafik & tabel: elevation halus + radius lebih besar + padding lebih lega, senada kartu ringkasan */
+.card-elevated {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(20, 30, 50, .07);
+}
+
+.card-elevated > .card-body {
+    padding: 1.5rem;
+}
+
+body.theme-dark .card-elevated {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+}
+
+/* baris tabel proyektor kritis: background lebih tegas + border-left tebal di sel pertama
+   (border-left di <tr> sendiri gak reliable dirender di tabel border-collapse, makanya ditaruh di <td>) */
+#tabelProyektor tr.row-perlu-perhatian { background-color: rgba(221, 162, 63, .16) !important; }
+#tabelProyektor tr.row-perlu-perhatian td:first-child { border-left: 4px solid #DDA23F; }
+
+#tabelProyektor tr.row-perlu-pemeliharaan { background-color: rgba(205, 90, 90, .16) !important; }
+#tabelProyektor tr.row-perlu-pemeliharaan td:first-child { border-left: 4px solid #CD5A5A; }
+
+body.theme-dark #tabelProyektor tr.row-perlu-perhatian { background-color: rgba(221, 162, 63, .12) !important; }
+body.theme-dark #tabelProyektor tr.row-perlu-pemeliharaan { background-color: rgba(205, 90, 90, .14) !important; }
+
+/* progress bar "Menuju Batas Servis": lebih tebal + pill-shape + transisi halus pas persentase berubah */
+#tabelProyektor .progress {
+    background-color: rgba(0, 0, 0, .06);
+    border-radius: 999px;
+    height: 14px !important;
+    overflow: hidden;
+}
+
+#tabelProyektor .progress-bar {
+    border-radius: 999px;
+    transition: width .3s ease;
+}
+
+body.theme-dark #tabelProyektor .progress {
+    background-color: rgba(255, 255, 255, .08);
+}
+
+/* Form "Ajukan Peminjaman" (create & edit): CSS grid biar urutan di HP bisa beda dari desktop
+   tanpa duplikat markup -- mobile: isi form -> Pilih Barang -> Barang yang Dipilih -> tombol Ajukan.
+   Desktop (lg+): balik ke tampilan 2 kolom biasa (form+keranjang di kiri, Pilih Barang di kanan,
+   ngikutin tinggi gabungan form+keranjang lewat grid-area yang nyambung 2 baris). */
+.form-peminjaman-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-areas:
+        "fields"
+        "pilih"
+        "cart";
+    grid-template-columns: 1fr;
+}
+
+.form-peminjaman-grid .area-fields,
+.form-peminjaman-grid .area-cart,
+.form-peminjaman-grid .area-pilih {
+    min-width: 0;
+}
+
+.form-peminjaman-grid .area-fields { grid-area: fields; }
+.form-peminjaman-grid .area-cart { grid-area: cart; }
+.form-peminjaman-grid .area-pilih { grid-area: pilih; }
+
+@media screen and (min-width: 992px) {
+    .form-peminjaman-grid {
+        grid-template-areas:
+            "fields pilih"
+            "cart   pilih";
+        grid-template-columns: 7fr 5fr;
+    }
+}
+
+/* Wrapper grafik Chart.js: tinggi desktop diatur inline per halaman (style="height: ...px"),
+   sini cuma nge-kecilin pas layar HP -- !important buat ngalahin inline style. */
+@media screen and (max-width: 576px) {
+    .chart-box {
+        height: 225px !important;
+    }
+
+    .chart-box-square {
+        width: 200px !important;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .chart-box {
+        height: 195px !important;
+    }
+
+    .chart-box-square {
+        width: 170px !important;
     }
 }

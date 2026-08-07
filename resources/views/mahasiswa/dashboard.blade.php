@@ -51,7 +51,7 @@
                         <div class="card-body">
                             <h6 class="fw-bold mb-1"><i class="bi bi-pie-chart-fill"></i> Proporsi Status Aset Umum</h6>
                             <div class="small text-muted mb-2">Update otomatis tiap 5 detik &middot; klik bagian grafik untuk lihat daftarnya</div>
-                            <div style="height: 260px;">
+                            <div class="chart-box" style="height: 260px;">
                                 <canvas id="chartStatusAset"></canvas>
                             </div>
                         </div>
@@ -61,7 +61,7 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line-fill"></i> Stok Barang Terbanyak</h6>
-                            <div style="height: 260px;">
+                            <div class="chart-box" style="height: 260px;">
                                 <canvas id="chartStokBarang"></canvas>
                             </div>
                         </div>
@@ -107,7 +107,7 @@
                         <div class="card-body">
                             <h6 class="fw-bold mb-1"><i class="bi bi-pie-chart-fill"></i> Ruangan Kosong vs Terisi</h6>
                             <div class="small text-muted mb-2">Update otomatis tiap 5 detik &middot; klik grafik buat lihat daftarnya</div>
-                            <div style="height: 260px;">
+                            <div class="chart-box" style="height: 260px;">
                                 <canvas id="chartRuangan"></canvas>
                             </div>
                         </div>
@@ -161,7 +161,7 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h6 class="fw-bold mb-3"><i class="bi bi-graph-up"></i> Tren Peminjaman Saya (6 Bulan Terakhir)</h6>
-                            <div style="height: 260px;">
+                            <div class="chart-box" style="height: 260px;">
                                 <canvas id="chartTrenSaya"></canvas>
                             </div>
                         </div>
@@ -171,7 +171,7 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill"></i> Barang yang Sering Saya Pinjam</h6>
-                            <div style="height: 260px;">
+                            <div class="chart-box" style="height: 260px;">
                                 <canvas id="chartBarangSaya"></canvas>
                             </div>
                         </div>
@@ -220,12 +220,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script>
       window.addEventListener('DOMContentLoaded', function () {
-        // di mode gelap, teks bawaan Chart.js (label sumbu & legend) defaultnya abu-abu gelap
-        // yang nyaris gak keliatan di background gelap -> putihin biar jelas kebaca
+        // teks Chart.js diputihin biar kebaca di mode gelap
         if (document.body.classList.contains('theme-dark')) {
             Chart.defaults.color = '#e9ecef';
             Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
         }
+        // ukuran font chart ngikutin lebar layar -- berlaku di light & dark mode
+        Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
 
         // ===== tab switcher =====
         const tabButtons = document.querySelectorAll('.dash-tab');
@@ -246,8 +247,7 @@
         tabButtons.forEach(btn => btn.addEventListener('click', () => pindahTab(btn.dataset.tab)));
 
         // ===== modal drill-down =====
-        // let (bukan const) -- daftarnya diganti tiap polling (updateStatusAsetUmum) biar
-        // drill-down juga ikut nunjukin data terbaru, bukan cuma nyantol data pas load pertama
+        // diganti tiap polling biar drill-down ikut data terbaru
         let daftarAsetPerStatus = @json($daftarAsetUmumPerStatus);
         const modalDrilldownAset = new bootstrap.Modal(document.getElementById('modalDrilldownAset'));
         const modalDrilldownRuangan = new bootstrap.Modal(document.getElementById('modalDrilldownRuangan'));
@@ -292,9 +292,7 @@
             }
         });
 
-        // ambil ulang status Aset Umum tiap 5 detik (sama kayak polling Aset Kelas di bawah),
-        // biar tile & chart-nya ikut real-time -- sebelumnya cuma keisi sekali pas halaman
-        // dimuat dan gak pernah keupdate lagi walau ada peminjaman baru/disetujui
+        // polling status aset umum tiap 5 detik biar tile & chart real-time
         function updateStatusAsetUmum() {
             fetch('{{ route('mahasiswa.dashboard.aset-umum-data') }}')
                 .then(response => response.json())
@@ -309,7 +307,7 @@
                 .catch(error => console.log('gagal ambil status aset umum:', error));
         }
 
-        setInterval(updateStatusAsetUmum, 5000);
+        setInterval(updateStatusAsetUmum, 1000);
 
         const labelStok = @json($stokPerBarang->pluck('nama_alat'));
         const dataStok = @json($stokPerBarang->pluck('jumlah_stok'));
@@ -399,10 +397,9 @@
                 .catch(error => console.log('gagal ambil status ruangan:', error));
         }
 
-        // ambil data ruangan dari awal (buat isi tile kosong/terisi walau tab-nya belum dibuka),
-        // tapi grafiknya sendiri baru dibikin pas tab Aset Kelas diklik pertama kali
+        // isi tile dari awal, chart baru dibikin pas tab diklik
         updateStatusRuangan();
-        setInterval(updateStatusRuangan, 5000);
+        setInterval(updateStatusRuangan, 1000);
 
         // ===== PANEL: PEMINJAMAN SAYA (dimuat begitu tab diklik pertama kali) =====
         function initChartPeminjamanSaya() {

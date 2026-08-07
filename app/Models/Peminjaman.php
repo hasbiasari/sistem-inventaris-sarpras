@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,10 +12,15 @@ class Peminjaman extends Model
 
     protected $table = 'peminjamans';
 
+    // penanda nama_eksternal buat data dummy histori pemakaian proyektor (lihat PemakaianProyektorSeeder) --
+    // dipakai biar data simulasi ini gak ikut kehitung sebagai aktivitas peminjaman asli di laporan/dashboard
+    const PENANDA_SIMULASI_SMA = 'Simulasi SMA';
+
     protected $casts = [
         'tanggal_pakai' => 'date',
         'tanggal_selesai' => 'date',
         'waktu_kembali' => 'datetime',
+        'notifikasi_terlambat_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -22,11 +28,13 @@ class Peminjaman extends Model
         'mahasiswa_id',
         'kelas',
         'ormawa',
+        'nama_kegiatan',
         'nama_eksternal',
         'keterangan_eksternal',
         'kategori',
         'status',
         'waktu_kembali',
+        'notifikasi_terlambat_at',
         'dokumen_izin',
         'catatan_admin',
         'aset_kelas_id',
@@ -69,7 +77,7 @@ class Peminjaman extends Model
         return $this->mahasiswa->nama ?? '-';
     }
 
-    // format tanggal buat ditampilin: sehari doang -> "27/07/2026", multi-hari -> "27/07/2026 - 29/07/2026"
+    // format tanggal buat ditampilin
     public function getRentangTanggalAttribute()
     {
         if (! $this->tanggal_pakai) {
@@ -83,9 +91,7 @@ class Peminjaman extends Model
         return $this->tanggal_pakai->format('d/m/Y');
     }
 
-    // format tanggal+jam gabungan buat ditampilin, sebagai SATU rentang waktu yang jalan terus
-    // (bukan jam yang sama diulang tiap hari): sehari doang -> "27/07/2026 (13:38-14:00)",
-    // multi-hari -> "27/07/2026 13:38 s.d. 29/07/2026 14:00"
+    // format tanggal+jam gabungan buat ditampilin
     public function getRentangWaktuAttribute()
     {
         if (! $this->tanggal_pakai || ! $this->jam_mulai || ! $this->jam_selesai) {
@@ -102,9 +108,32 @@ class Peminjaman extends Model
         return $this->tanggal_pakai->format('d/m/Y') . " ({$jamMulai}-{$jamSelesai})";
     }
 
-    // scope biar gampang filter peminjaman punya 1 mahasiswa doang (buat requirement 8: riwayat mahasiswa)
+    // durasi pemakaian dalam jam (desimal), dari jam_mulai s.d. jam_selesai (ikut tanggal_selesai kalau multi-hari)
+    public function getDurasiJamAttribute()
+    {
+        if (! $this->tanggal_pakai || ! $this->jam_mulai || ! $this->jam_selesai) {
+            return 0;
+        }
+
+        $mulai = Carbon::parse($this->tanggal_pakai->format('Y-m-d') . ' ' . $this->jam_mulai);
+        $tanggalSelesai = $this->tanggal_selesai ?? $this->tanggal_pakai;
+        $selesai = Carbon::parse($tanggalSelesai->format('Y-m-d') . ' ' . $this->jam_selesai);
+
+        return $mulai->diffInMinutes($selesai) / 60;
+    }
+
+    // scope filter peminjaman punya 1 mahasiswa
     public function scopeMilikMahasiswa($query, $mahasiswaId)
     {
         return $query->where('mahasiswa_id', $mahasiswaId);
+    }
+
+    // buang data dummy seeder simulasi SMA dari laporan/aktivitas peminjaman asli --
+    // nama_eksternal nullable, jadi harus whereNull juga (!= gak nangkep NULL di SQL)
+    public function scopeBukanSimulasi($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('nama_eksternal')->orWhere('nama_eksternal', '!=', self::PENANDA_SIMULASI_SMA);
+        });
     }
 }

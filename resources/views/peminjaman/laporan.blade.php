@@ -43,9 +43,6 @@
                         </a>
                     </div>
                 </form>
-                <small class="text-muted d-block mt-2">
-                    <i class="bi bi-info-circle"></i> Filter tanggal berdasarkan tanggal pengajuan peminjaman diajukan. Isi salah satu (Dari/Sampai) buat filter terbuka, atau isi keduanya buat rentang tanggal tertentu.
-                </small>
             </div>
         </div>
 
@@ -54,7 +51,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3" id="judulChartDistribusi">Distribusi Kategori</h6>
-                        <div style="height: 220px;">
+                        <div class="chart-box" style="height: 220px;">
                             <canvas id="chartDistribusiKategori"></canvas>
                         </div>
                     </div>
@@ -109,7 +106,6 @@
 
         <div class="card">
             <div class="card-body">
-                <div class="table-responsive">
                     <table class="table table-bordered" id="tabelLaporan">
                         <thead class="table-light">
                             <tr>
@@ -163,7 +159,7 @@
                                     </td>
                                     <td>
                                         @if ($peminjaman->details->isNotEmpty())
-                                            <span class="small">{{ $peminjaman->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ' x' . $d->jumlah)->join(', ') }}</span>
+                                            <span class="small">{{ $peminjaman->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ($d->asetUmum->nomor_unit ? " ({$d->asetUmum->nomor_unit})" : '') . ' x' . $d->jumlah)->join(', ') }}</span>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -220,6 +216,9 @@
                                                         @if ($peminjaman->ormawa)
                                                             <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">ORMAWA</div><div>: {{ $peminjaman->ormawa }}</div></div>
                                                         @endif
+                                                        @if ($peminjaman->nama_kegiatan)
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Nama Kegiatan</div><div>: {{ $peminjaman->nama_kegiatan }}</div></div>
+                                                        @endif
                                                         @if ($peminjaman->keterangan_eksternal)
                                                             <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Keterangan</div><div>: {{ $peminjaman->keterangan_eksternal }}</div></div>
                                                         @endif
@@ -241,7 +240,7 @@
                                                         <strong>Barang yang dipinjam:</strong>
                                                         <ul class="mb-2">
                                                             @forelse ($peminjaman->details as $detail)
-                                                                <li>{{ $detail->asetUmum->nama_alat ?? '-' }} x{{ $detail->jumlah }}</li>
+                                                                <li>{{ $detail->asetUmum->nama_alat ?? '-' }}{{ $detail->asetUmum->nomor_unit ? " ({$detail->asetUmum->nomor_unit})" : '' }} x{{ $detail->jumlah }}</li>
                                                             @empty
                                                                 <li class="text-muted">Tidak ada barang, cuma pinjam ruangan.</li>
                                                             @endforelse
@@ -276,7 +275,6 @@
                             @endforeach
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
 
@@ -335,6 +333,7 @@
             const modeGelap = document.body.classList.contains('theme-dark');
             Chart.defaults.color = modeGelap ? '#e9ecef' : '#495057';
             Chart.defaults.borderColor = modeGelap ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
 
             chartDistribusi = new Chart(document.getElementById('chartDistribusiKategori'), {
                 type: 'doughnut',
@@ -357,6 +356,8 @@
 
         $(function () {
             const table = $('#tabelLaporan').DataTable({
+                responsive: true,
+                columnDefs: [{ className: 'all', targets: -1 }],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 order: [],
@@ -371,8 +372,7 @@
                 }
             });
 
-            // indeks kolom: 3=Kelas, 4=Ormawa, 5=Instansi -- beda kategori beda kolom yg relevan,
-            // jadi gak nampilin kolom kosong yg bikin tabel penuh percuma
+            // indeks kolom yang relevan per kategori: 3=Kelas, 4=Ormawa, 5=Instansi
             const kolomPerKategori = {
                 semua: [3, 4, 5],
                 kuliah: [3],
@@ -399,6 +399,28 @@
             table.draw();
             if (filterAktif !== 'semua') {
                 renderChartDistribusi(filterAktif);
+            }
+
+            // dari notifikasi ("barang telah dikembalikan") -> langsung lompat ke halaman & buka detailnya
+            const idSorot = new URLSearchParams(window.location.search).get('highlight');
+            if (idSorot) {
+                const barisTarget = table.rows().nodes().to$().filter(function () {
+                    return $(this).find('#modalDetail' + idSorot).length > 0;
+                });
+
+                if (barisTarget.length > 0) {
+                    const indexBaris = table.row(barisTarget[0]).index();
+                    const posisi = table.rows({ search: 'applied' }).indexes().indexOf(indexBaris);
+
+                    if (posisi !== -1) {
+                        table.page(Math.floor(posisi / table.page.len())).draw(false);
+                    }
+
+                    setTimeout(function () {
+                        const modalEl = document.getElementById('modalDetail' + idSorot);
+                        if (modalEl) new bootstrap.Modal(modalEl).show();
+                    }, 100);
+                }
             }
 
             $('.btn-filter-kategori').on('click', function () {

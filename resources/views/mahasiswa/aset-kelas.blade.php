@@ -47,7 +47,7 @@
                     </div>
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-bordered mb-2">
                         <thead>
                             <tr>
@@ -63,6 +63,11 @@
                             <tr><td colspan="6" class="text-center text-muted">Memuat data...</td></tr>
                         </tbody>
                     </table>
+                </div>
+
+                {{-- versi kartu khusus HP: kolomnya sama persis kayak tabel, cuma disusun ke bawah biar gak perlu digeser --}}
+                <div class="d-md-none mb-2" id="kartu-status-ruangan">
+                    <div class="text-center text-muted py-3">Memuat data...</div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -89,6 +94,7 @@
             const statusDipilih = document.getElementById('filter-status-ruangan').value;
             const entriPerHalaman = parseInt(document.getElementById('entri-per-halaman-ruangan').value, 10);
             const tbody = document.getElementById('tabel-status-ruangan');
+            const kartu = document.getElementById('kartu-status-ruangan');
 
             const dataTersaring = dataRuanganTerakhir.filter(function (r) {
                 const cocokKataKunci = !kataKunci || r.nama_ruangan.toLowerCase().includes(kataKunci);
@@ -113,33 +119,46 @@
 
             if (dataHalaman.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Tidak ada ruangan yang cocok.</td></tr>';
+                kartu.innerHTML = '<div class="text-center text-muted py-3">Tidak ada ruangan yang cocok.</div>';
                 return;
             }
 
-            tbody.innerHTML = dataHalaman.map(function (r) {
+            const barisRuangan = dataHalaman.map(function (r) {
                 const jadwal = (r.jadwal_hari_ini && r.jadwal_hari_ini.length)
                     ? r.jadwal_hari_ini.map(formatBarisJadwal).join('')
                     : '<span class="text-muted">Kosong sepanjang hari</span>';
 
-                if (r.sedang_dipakai) {
-                    return `<tr>
-                        <td>${r.nama_ruangan}</td>
-                        <td><span class="badge bg-warning">Dipakai</span></td>
-                        <td>${r.dipakai_oleh ?? '-'}</td>
-                        <td>${labelKelasOrmawa(r.kategori, r.kelas_peminjam, r.ormawa_peminjam)}</td>
-                        <td>${jamSingkat(r.jam_mulai)} - ${jamSingkat(r.jam_selesai)}</td>
-                        <td class="small">${jadwal}</td>
-                    </tr>`;
-                }
-                return `<tr>
+                return {
+                    r,
+                    jadwal,
+                    dipakaiOleh: r.sedang_dipakai ? (r.dipakai_oleh ?? '-') : '-',
+                    kelasOrmawa: r.sedang_dipakai ? labelKelasOrmawa(r.kategori, r.kelas_peminjam, r.ormawa_peminjam) : '-',
+                    jam: r.sedang_dipakai ? `${jamSingkat(r.jam_mulai)} - ${jamSingkat(r.jam_selesai)}` : '-',
+                };
+            });
+
+            tbody.innerHTML = barisRuangan.map(({ r, jadwal, dipakaiOleh, kelasOrmawa, jam }) => `<tr>
                     <td>${r.nama_ruangan}</td>
-                    <td><span class="badge bg-success">Kosong</span></td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
+                    <td><span class="badge bg-${r.sedang_dipakai ? 'warning' : 'success'}">${r.sedang_dipakai ? 'Dipakai' : 'Kosong'}</span></td>
+                    <td>${dipakaiOleh}</td>
+                    <td>${kelasOrmawa}</td>
+                    <td>${jam}</td>
                     <td class="small">${jadwal}</td>
-                </tr>`;
-            }).join('');
+                </tr>`).join('');
+
+            kartu.innerHTML = barisRuangan.map(({ r, jadwal, dipakaiOleh, kelasOrmawa, jam }) => `
+                <div class="card card-elevated mb-2">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div class="fw-semibold">${r.nama_ruangan}</div>
+                            <span class="badge bg-${r.sedang_dipakai ? 'warning' : 'success'} flex-shrink-0">${r.sedang_dipakai ? 'Dipakai' : 'Kosong'}</span>
+                        </div>
+                        <div class="small mt-1"><span class="text-muted">Dipakai Oleh:</span> ${dipakaiOleh}</div>
+                        <div class="small"><span class="text-muted">Kelas / ORMAWA:</span> ${kelasOrmawa}</div>
+                        <div class="small mb-2"><span class="text-muted">Jam:</span> ${jam}</div>
+                        <div class="small">${jadwal}</div>
+                    </div>
+                </div>`).join('');
         }
 
         function capitalize(text) {
@@ -151,9 +170,7 @@
             return kategori === 'organisasi' ? (ormawa ?? '-') : (kelas ?? '-');
         }
 
-        // 1 baris jadwal: jam, kelas/ORMAWA/instansi, peminjamnya, sama barang/proyektor yang
-        // ikut dibawa (kalau ada) -- biar bisa cek "mau pakai jam sekian, ada kelas kosong gak,
-        // proyektornya dipakai gak" tanpa perlu tau jam pastinya dulu
+        // 1 baris jadwal: jam, kelas/ormawa, peminjam, barang yang dibawa
         function formatBarisJadwal(j) {
             const kelasOrmawa = j.kategori === 'organisasi' ? (j.ormawa ?? '-') : (j.kelas ?? '-');
             const multiHari = j.sampai_tanggal ? ` <span class="badge bg-info-subtle text-info-emphasis">s/d ${j.sampai_tanggal}</span>` : '';
@@ -206,8 +223,7 @@
             renderTabelRuangan();
         });
 
-        // status ruangan kelas (lagi dipakai siapa atau kosong). Defaultnya real-time (sekarang),
-        // tapi bisa dicek buat tanggal lain lewat filter di atas tabel.
+        // status ruangan real-time, bisa difilter ke tanggal lain
         const inputFilterTanggalRuangan = document.getElementById('filter-tanggal-ruangan');
         const labelStatusRuangan = document.getElementById('label-status-ruangan');
         let modeRealtimeRuangan = true;
@@ -250,6 +266,6 @@
         });
 
         updateStatusRuangan();
-        setInterval(updateStatusRuangan, 5000);
+        setInterval(updateStatusRuangan, 1000);
     </script>
 </x-app-layout>

@@ -8,7 +8,12 @@
       "Bash(grep -n 'kategoriFilter === '\\\\''kuliah'\\\\'' && $peminjaman->status === '\\\\''disetujui'\\\\''' 'c:\\\\xampp\\\\htdocs\\\\sistem-inventaris-sarpras\\\\resources\\\\views\\\\peminjaman\\\\laporan.blade.php')",
       "Bash(php -l resources/views/peminjaman/eksternal-create.blade.php)",
       "Bash(php -l app/Http/Controllers/MahasiswaController.php)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(php -l app/Http/Controllers/AsetUmumController.php)",
+      "Bash(php -l app/Models/AsetUmum.php)",
+      "Bash(php -l app/Models/Peminjaman.php)",
+      "Bash(php -l app/Models/User.php)",
+      "Bash(php artisan *)"
     ]
   }
 }

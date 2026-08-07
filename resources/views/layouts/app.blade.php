@@ -20,6 +20,9 @@
     <link rel="stylesheet" href="{{ asset('css/mazer-green-theme.css') }}?v={{ filemtime(public_path('css/mazer-green-theme.css')) }}">
 
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+    {{-- DataTables Responsive: kolom yang gak muat di layar sempit dilipat jadi tombol "+" (expand),
+         bukan bikin tabel geser ke samping --}}
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 
     {{-- Alpine.js (dipakai modal profile) + Bootstrap JS bundle --}}
     @vite(['resources/js/app.js'])
@@ -31,6 +34,8 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
@@ -64,9 +69,12 @@
                         <span id="notif-badge" class="notif-badge badge rounded-pill bg-danger d-none">0</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end notif-dropdown-menu" aria-labelledby="notifBellToggle">
-                        <h6 class="dropdown-header">Notifikasi</h6>
+                        <div class="notif-dropdown-header">
+                            <p class="notif-title mb-0">Notifikasi</p>
+                            <button type="button" id="notif-tandai-semua" class="notif-tandai-semua" disabled>Tandai semua dibaca</button>
+                        </div>
                         <div id="notif-list" class="notif-list">
-                            <div class="notif-kosong text-muted text-center py-3">Belum ada notifikasi</div>
+                            <div class="notif-kosong text-muted text-center py-4">Belum ada notifikasi</div>
                         </div>
                     </div>
                 </div>
@@ -87,6 +95,9 @@
                     <div class="float-start">
                         <p>&copy; {{ date('Y') }} <a href="https://sttcipasung.ac.id/" target="_blank" rel="noopener">STT Cipasung</a> &mdash; Sistem Inventaris Sarpras</p>
                     </div>
+                    <div class="float-end">
+                        <p>Powered by <a href="https://www.instagram.com/muhammadhasbiasari?igsh=eGF4MGR6OTc1OXRz&utm_source=qr" target="_blank" rel="noopener">MHA</a></p>
+                    </div>
                 </div>
             </footer>
         </div>
@@ -95,12 +106,7 @@
     {{-- Skrip khusus Mazer: burger-btn & sidebar-hide toggle sidebar --}}
     <script src="{{ asset('js/mazer/app.js') }}"></script>
     <script>
-        // app.js bawaan Mazer punya sistem dark-mode sendiri yang pakai localStorage key
-        // yang sama ("theme") tapi format nilai beda (theme-dark/theme-light vs dark/light
-        // punya kita). Init tema versi Mazer itu BUKAN langsung jalan di baris ini, tapi baru
-        // jalan pas event DOMContentLoaded - jadi dia sebenarnya jalan BELAKANGAN, nimpa
-        // perbaikan apapun yang kita taruh di sini secara langsung. Makanya perbaikan kita juga
-        // harus didaftarkan di event yang sama, supaya jalan paling akhir (menang terakhir).
+        // sinkronin format tema kita ke class dark-mode punya Mazer
         function terapkanTemaSidebar() {
             var theme = localStorage.getItem('theme') || 'light';
             document.body.classList.toggle('theme-dark', theme === 'dark');
@@ -116,6 +122,42 @@
 
     @stack('modal')
     @stack('scripts')
+
+    <style>
+        .notif-popup-besar.swal2-popup {
+            border-radius: 1.1rem;
+            padding: 2rem 1.75rem 1.75rem;
+        }
+
+        .notif-popup-besar .swal2-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0F6B4C;
+        }
+
+        .notif-popup-besar .swal2-html-container {
+            font-size: 1.02rem;
+        }
+
+        .notif-popup-besar .swal2-icon.swal2-info {
+            border-color: #0F6B4C;
+            color: #0F6B4C;
+        }
+
+        .notif-popup-besar .swal2-close {
+            font-size: 1.8rem;
+        }
+
+        .notif-popup-besar .swal2-close:hover {
+            color: #0F6B4C;
+        }
+
+        .notif-popup-besar .swal2-confirm {
+            background-color: #0F6B4C !important;
+            border-radius: 0.6rem;
+            padding: 0.6rem 1.4rem;
+        }
+    </style>
 
     <script>
         $(function () {
@@ -142,59 +184,118 @@
             });
         });
 
-        // pop-up toast otomatis muncul pas ada notifikasi BARU (gak nunggu lonceng diklik).
-        // idTerbesarSebelumnya null di load pertama biar notif lama gak ikut nge-popup semua.
+        // popup notifikasi baru -> muncul di tengah, gak nutup sendiri, antre kalau lebih dari satu
         let idTerbesarSebelumnya = null;
+        let antrianPopupNotifikasi = [];
+        let popupNotifikasiSedangTampil = false;
+
+        const peranUser = "{{ auth()->user()->role }}";
 
         function tampilkanPopupNotifikasi(n) {
-            const toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 6000,
-                timerProgressBar: true,
-                didOpen: (el) => {
-                    el.style.cursor = 'pointer';
-                    el.addEventListener('click', () => {
-                        if (n.link) window.location.href = n.link;
-                    });
-                },
-            });
+            // popup gede di tengah cukup buat mahasiswa (misal pengingat telat kembalikan barang).
+            // role lain (admin, pimpinan) cukup keliatan di lonceng notifikasi, gak usah nongol popup -> biar gak ribet.
+            if (peranUser !== 'mahasiswa') return;
 
-            toast.fire({
+            antrianPopupNotifikasi.push(n);
+            prosesAntrianPopupNotifikasi();
+        }
+
+        function prosesAntrianPopupNotifikasi() {
+            if (popupNotifikasiSedangTampil || antrianPopupNotifikasi.length === 0) return;
+
+            const n = antrianPopupNotifikasi.shift();
+            popupNotifikasiSedangTampil = true;
+
+            Swal.fire({
                 icon: 'info',
                 title: n.pesan,
+                width: 460,
+                showCloseButton: true,
+                showConfirmButton: !!n.link,
+                confirmButtonText: 'Lihat Detail',
+                customClass: { popup: 'notif-popup-besar' },
+            }).then((result) => {
+                popupNotifikasiSedangTampil = false;
+
+                if (result.isConfirmed && n.link) {
+                    fetch(`/notifikasi/${n.id}/tandai-dibaca`, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrfToken() },
+                    });
+                    window.location.href = n.link;
+                    return;
+                }
+
+                // ditutup pake tombol X (bukan diklik detailnya) -> tetep belum dibaca,
+                // biar muncul lagi popup-nya di reload/login berikutnya selama belum ditindaklanjuti
+                prosesAntrianPopupNotifikasi();
             });
+        }
+
+        // format waktu relatif ringkas: "baru saja", "5 menit lalu", "3 jam lalu", "2 hari lalu"
+        function waktuRelatif(isoString) {
+            const detik = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+
+            if (detik < 60) return 'baru saja';
+            if (detik < 3600) return Math.floor(detik / 60) + ' menit lalu';
+            if (detik < 86400) return Math.floor(detik / 3600) + ' jam lalu';
+            if (detik < 2592000) return Math.floor(detik / 86400) + ' hari lalu';
+            return new Date(isoString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function csrfToken() {
+            return document.querySelector('meta[name="csrf-token"]').content;
+        }
+
+        function renderNotifikasi(data) {
+            const badge = document.getElementById('notif-badge');
+            const list = document.getElementById('notif-list');
+            const tombolTandaiSemua = document.getElementById('notif-tandai-semua');
+
+            if (data.jumlah_belum_dibaca > 0) {
+                badge.textContent = data.jumlah_belum_dibaca;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+            tombolTandaiSemua.disabled = data.jumlah_belum_dibaca === 0;
+
+            if (data.notifikasi.length === 0) {
+                list.innerHTML = '<div class="notif-kosong text-muted text-center py-4">Belum ada notifikasi</div>';
+                return;
+            }
+
+            list.innerHTML = data.notifikasi.map(function (n) {
+                const belumDibaca = !n.sudah_dibaca;
+                const kelasBelumDibaca = belumDibaca ? 'notif-item-belum-dibaca' : '';
+                const link = n.link ?? '#';
+                return `<a href="${link}" data-id="${n.id}" class="dropdown-item notif-item ${kelasBelumDibaca}">
+                    <span class="notif-item-icon"><i class="bi bi-bell-fill"></i></span>
+                    <span class="notif-item-body">
+                        <span class="notif-item-pesan">${n.pesan}</span>
+                        <span class="notif-item-waktu">${waktuRelatif(n.created_at)}</span>
+                    </span>
+                    ${belumDibaca ? '<span class="notif-item-dot"></span>' : ''}
+                </a>`;
+            }).join('');
         }
 
         function ambilNotifikasi() {
             fetch("{{ route('notifikasi.data') }}")
                 .then(res => res.json())
                 .then(data => {
-                    const badge = document.getElementById('notif-badge');
-                    const list = document.getElementById('notif-list');
-
-                    if (data.jumlah_belum_dibaca > 0) {
-                        badge.textContent = data.jumlah_belum_dibaca;
-                        badge.classList.remove('d-none');
-                    } else {
-                        badge.classList.add('d-none');
-                    }
-
-                    if (data.notifikasi.length === 0) {
-                        list.innerHTML = '<div class="notif-kosong text-muted text-center py-3">Belum ada notifikasi</div>';
-                    } else {
-                        list.innerHTML = data.notifikasi.map(function (n) {
-                            const kelasBelumDibaca = n.sudah_dibaca ? '' : 'notif-item-belum-dibaca';
-                            const link = n.link ?? '#';
-                            return `<a href="${link}" class="dropdown-item notif-item ${kelasBelumDibaca}">${n.pesan}</a>`;
-                        }).join('');
-                    }
+                    renderNotifikasi(data);
 
                     if (data.notifikasi.length > 0) {
                         const idTerbesarSekarang = Math.max(...data.notifikasi.map(n => n.id));
 
                         if (idTerbesarSebelumnya === null) {
+                            // baru buka/reload halaman -> tetep tampilin popup buat notif yang belum dibaca
+                            // (misal: kemarin ditutup doang tapi belum diklik/ditandai, jadi harus muncul lagi)
+                            data.notifikasi
+                                .filter(n => !n.sudah_dibaca)
+                                .reverse()
+                                .forEach(tampilkanPopupNotifikasi);
                             idTerbesarSebelumnya = idTerbesarSekarang;
                         } else if (idTerbesarSekarang > idTerbesarSebelumnya) {
                             data.notifikasi
@@ -207,19 +308,27 @@
                 });
         }
 
-        document.getElementById('notifBellToggle')?.addEventListener('click', function () {
+        // klik satu notifikasi -> cuma itu aja yang ditandai dibaca, sisanya tetap kebaca statusnya
+        document.getElementById('notif-list')?.addEventListener('click', function (e) {
+            const item = e.target.closest('.notif-item');
+            if (!item || !item.classList.contains('notif-item-belum-dibaca')) return;
+
+            fetch(`/notifikasi/${item.dataset.id}/tandai-dibaca`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken() },
+            });
+            // gak perlu nunggu response -> biarin link jalan (navigasi) langsung
+        });
+
+        document.getElementById('notif-tandai-semua')?.addEventListener('click', function () {
             fetch("{{ route('notifikasi.tandai-dibaca') }}", {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-            }).then(() => {
-                document.getElementById('notif-badge').classList.add('d-none');
-            });
+                headers: { 'X-CSRF-TOKEN': csrfToken() },
+            }).then(ambilNotifikasi);
         });
 
         ambilNotifikasi();
-        setInterval(ambilNotifikasi, 5000);
+        setInterval(ambilNotifikasi, 1000);
     </script>
 </body>
 

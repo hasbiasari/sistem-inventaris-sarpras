@@ -10,7 +10,10 @@ class AsetUmumSeeder extends Seeder
     public function run(): void
     {
         // kunci per ruangan
-        $ruanganPunyaKunci = ['Labkom 1', 'Labkom 2', 'Aula', 'Kubika', 'B103', 'LAB ERGONOMI', 'DKV'];
+        $ruanganPunyaKunci = [
+            'Labkom 1', 'Labkom 2', 'Aula', 'Kubika', 'B103', 'LAB ERGONOMI',
+            'BLK DKV', 'BLK DKV Ruangan Teori', 'BLK DKV Ruangan Praktik',
+        ];
 
         foreach ($ruanganPunyaKunci as $ruangan) {
             AsetUmum::create([

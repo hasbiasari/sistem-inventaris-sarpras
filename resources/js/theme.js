@@ -19,16 +19,42 @@ function updateThemeToggleButton(theme) {
     }
 }
 
+// Chart.js nyimpen warna tiap chart pas dibikin (bukan baca Chart.defaults tiap render),
+// jadi kalau tema di-toggle tanpa reload halaman, chart yang udah kebentuk duluan tetep
+// pakai warna tema lama -> teksnya jadi nyaris gak keliatan. Update manual tiap chart di sini.
+function refreshChartColors(theme) {
+    if (typeof window.Chart === 'undefined' || !window.Chart.instances) {
+        return;
+    }
+
+    const color = theme === 'dark' ? '#e9ecef' : '#495057';
+    const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+    window.Chart.defaults.color = color;
+    window.Chart.defaults.borderColor = gridColor;
+
+    Object.values(window.Chart.instances).forEach((chart) => {
+        chart.options.color = color;
+        if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach((scale) => {
+                scale.ticks = { ...(scale.ticks || {}), color };
+                scale.grid = { ...(scale.grid || {}), color: gridColor };
+            });
+        }
+        chart.update();
+    });
+}
+
 function setTheme(theme, save = true) {
     document.documentElement.setAttribute('data-theme', theme);
-    // app.css/app-dark.css bawaan Mazer aktif lewat class "theme-dark" di body,
-    // bukan lewat atribut data-theme, jadi keduanya perlu disetel bareng
+    // Mazer pakai class "theme-dark" di body, bukan atribut data-theme
     document.body.classList.toggle('theme-dark', theme === 'dark');
     document.body.classList.toggle('theme-light', theme !== 'dark');
     if (save) {
         localStorage.setItem('theme', theme);
     }
     updateThemeToggleButton(theme);
+    refreshChartColors(theme);
 }
 
 function initTheme() {

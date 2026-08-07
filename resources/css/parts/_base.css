@@ -1,8 +1,14 @@
 html {
-    /* biar tampilan di zoom browser 100% keliatan lebih compact kayak zoom 90% -- konsisten sama
-       pendekatan di public/css/mazer-green-theme.css (font-size, BUKAN `zoom`, biar gak numpang
-       bug zoom+position:fixed di elemen lain) */
-    font-size: 90%;
+    /* Sama kayak halaman setelah login (public/css/mazer-green-theme.css): ukuran ngikutin lebar
+       layar secara HALUS/PROPORSIONAL, bukan flat. HP kecil (<=320px) dapet ukuran paling kecil
+       (52%, sama kayak floor di halaman lain -- biar konsisten "sekecil apa" HP dianggap), makin
+       lebar layarnya makin gede pelan-pelan sampai ukuran desktop lama (90%) di >=768px. */
+    font-size: clamp(8.32px, calc(8.32px + (14.4px - 8.32px) * ((100vw - 320px) / (768px - 320px))), 14.4px);
+    /* Chrome mobile kadang "text autosize"-in font secara otomatis (biasanya nempel di input yang
+       keisi via autofill pas baru mendarat di halaman), bikin ukurannya beda dari yang di-set CSS.
+       Dimatiin biar konsisten sama ukuran yang udah diatur manual. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 :root {

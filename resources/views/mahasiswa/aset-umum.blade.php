@@ -53,7 +53,7 @@
                     <i class="bi bi-info-circle"></i> Kolom Dipinjam Oleh/Kelas/Ruangan/Jam nunjukin jadwal peminjaman yang aktif hari ini (atau di tanggal yang dicek) -- bisa lebih dari satu kalau jamnya beda-beda.
                 </small>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-bordered mb-2">
                         <thead>
                             <tr>
@@ -70,6 +70,11 @@
                             <tr><td colspan="7" class="text-center text-muted">Memuat data...</td></tr>
                         </tbody>
                     </table>
+                </div>
+
+                {{-- versi kartu khusus HP: kolomnya sama persis kayak tabel, cuma disusun ke bawah biar gak perlu digeser --}}
+                <div class="d-md-none mb-2" id="kartu-aset-umum">
+                    <div class="text-center text-muted py-3">Memuat data...</div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -100,6 +105,7 @@
             const statusDipilih = document.getElementById('filter-status-aset').value;
             const entriPerHalaman = parseInt(document.getElementById('entri-per-halaman').value, 10);
             const tbody = document.getElementById('tabel-aset-umum');
+            const kartu = document.getElementById('kartu-aset-umum');
 
             const dataTersaring = dataAsetTerakhir.filter(function (a) {
                 const cocokKataKunci = !kataKunci ||
@@ -126,16 +132,16 @@
 
             if (dataHalaman.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tidak ada aset yang cocok.</td></tr>';
+                kartu.innerHTML = '<div class="text-center text-muted py-3">Tidak ada aset yang cocok.</div>';
                 return;
             }
 
-            // jadwal per alat bisa lebih dari 1 (barang boleh dipinjam bareng orang lain asal jamnya
-            // beda), jadi tiap kolom nunjukin daftar SEMUA slot yang aktif, satu baris per peminjam
+            // 1 alat bisa punya beberapa slot jadwal, tiap baris 1 peminjam
             function daftarBaris(jadwal, formatter) {
                 return jadwal.length ? jadwal.map(formatter).join('<br>') : '-';
             }
 
-            tbody.innerHTML = dataHalaman.map(function (a) {
+            const barisAset = dataHalaman.map(function (a) {
                 const detail = [a.nomor_unit, a.merek, a.kode_aset].filter(Boolean).join(' - ') || '-';
                 const jadwal = a.riwayat_peminjam || [];
 
@@ -146,16 +152,33 @@
                     ? `${r.tanggal_pakai} (${r.jam_mulai ?? '-'} - ${r.jam_selesai ?? '-'})`
                     : '-');
 
-                return `<tr>
+                return { a, detail, badge: warnaBadgeJs(a.status_efektif), kolomNama, kolomKelas, kolomRuangan, kolomTanggalJam };
+            });
+
+            tbody.innerHTML = barisAset.map(({ a, detail, badge, kolomNama, kolomKelas, kolomRuangan, kolomTanggalJam }) => `<tr>
                     <td>${a.nama_alat}</td>
                     <td>${detail}</td>
-                    <td><span class="badge bg-${warnaBadgeJs(a.status_efektif)}">${capitalize(a.status_efektif)}</span></td>
+                    <td><span class="badge bg-${badge}">${capitalize(a.status_efektif)}</span></td>
                     <td>${kolomNama}</td>
                     <td>${kolomKelas}</td>
                     <td>${kolomRuangan}</td>
                     <td>${kolomTanggalJam}</td>
-                </tr>`;
-            }).join('');
+                </tr>`).join('');
+
+            kartu.innerHTML = barisAset.map(({ a, detail, badge, kolomNama, kolomKelas, kolomRuangan, kolomTanggalJam }) => `
+                <div class="card card-elevated mb-2">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div class="fw-semibold">${a.nama_alat}</div>
+                            <span class="badge bg-${badge} flex-shrink-0">${capitalize(a.status_efektif)}</span>
+                        </div>
+                        <div class="small text-muted mb-2">${detail}</div>
+                        <div class="small"><span class="text-muted">Dipinjam Oleh:</span> ${kolomNama}</div>
+                        <div class="small"><span class="text-muted">Kelas:</span> ${kolomKelas}</div>
+                        <div class="small"><span class="text-muted">Ruangan:</span> ${kolomRuangan}</div>
+                        <div class="small"><span class="text-muted">Tanggal & Jam:</span> ${kolomTanggalJam}</div>
+                    </div>
+                </div>`).join('');
         }
 
         // render nomor halaman (gaya sama kayak DataTables: Sebelumnya - 1 2 3 - Selanjutnya)
@@ -201,8 +224,7 @@
 
         renderTabelAset();
 
-        // ambil data terbaru tiap 5 detik. Defaultnya real-time (sekarang), tapi bisa dicek
-        // buat tanggal lain lewat filter di atas tabel (kolom riwayat peminjam ikut nyesuaiin).
+        // polling data tiap 5 detik, bisa difilter ke tanggal lain
         const inputFilterTanggalAset = document.getElementById('filter-tanggal-aset');
         const labelStatusAset = document.getElementById('label-status-aset');
         let modeRealtimeAset = true;
@@ -244,6 +266,6 @@
             updateStokAlat();
         });
 
-        setInterval(updateStokAlat, 5000);
+        setInterval(updateStokAlat, 1000);
     </script>
 </x-app-layout>

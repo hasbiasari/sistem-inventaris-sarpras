@@ -74,9 +74,9 @@
                 </a>
             </div>
             <div class="col-6 col-md-3">
-                <a href="{{ route('admin.aset-umum', ['status' => 'pemeliharaan']) }}" class="text-decoration-none">
-                    <div class="alert alert-secondary mb-0 text-center py-2">
-                        Pemeliharaan: <b>{{ $statusAset['pemeliharaan'] }}</b>
+                <a href="{{ route('admin.pemeliharaan-proyektor') }}" class="text-decoration-none">
+                    <div class="alert {{ $jumlahProyektorPerluPemeliharaan > 0 ? 'alert-danger' : 'alert-secondary' }} mb-0 text-center py-2">
+                        Perlu Pemeliharaan: <b>{{ $jumlahProyektorPerluPemeliharaan }}</b>
                     </div>
                 </a>
             </div>
@@ -84,7 +84,7 @@
 
         {{-- perlu tindakan --}}
         <div class="card mb-4">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h6 class="fw-bold mb-0">📋 Perlu Tindakan &mdash; Pengajuan Peminjaman Organisasi</h6>
                 <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi']) }}" class="btn btn-sm btn-outline-primary">
                     Lihat Semua
@@ -92,12 +92,12 @@
             </div>
             <div class="card-body">
                 @forelse ($daftarMenunggu as $peminjaman)
-                    <div class="d-flex justify-content-between align-items-center py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                         <div>
                             <div class="fw-semibold">{{ $peminjaman->nama_peminjam }}</div>
                             <div class="small text-muted">
                                 @foreach ($peminjaman->details as $detail)
-                                    {{ $detail->asetUmum->nama_alat ?? '-' }} x{{ $detail->jumlah }}@if (!$loop->last), @endif
+                                    {{ $detail->asetUmum->nama_lengkap ?? '-' }} x{{ $detail->jumlah }}@if (!$loop->last), @endif
                                 @endforeach
                             </div>
                         </div>
@@ -114,15 +114,14 @@
 
         {{-- booking terbaru: organisasi (ormawa mana aja) + eksternal, biar keliatan semua di sini --}}
         <div class="card mb-4">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h6 class="fw-bold mb-0">🗂️ Booking Terbaru (Organisasi &amp; Eksternal)</h6>
                 <a href="{{ route('admin.peminjaman.laporan') }}" class="btn btn-sm btn-outline-primary">
                     Lihat Semua
                 </a>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0">
+                    <table class="table table-bordered mb-0" id="tabelBookingOrganisasi">
                         <thead class="table-light">
                             <tr>
                                 <th>Nama Peminjam</th>
@@ -167,7 +166,7 @@
                                     </td>
                                     <td>
                                         @if ($booking->details->isNotEmpty())
-                                            <span class="small">{{ $booking->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ' x' . $d->jumlah)->join(', ') }}</span>
+                                            <span class="small">{{ $booking->details->map(fn ($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->join(', ') }}</span>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -182,21 +181,19 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
 
         {{-- booking terbaru kategori kuliah --}}
         <div class="card mb-4">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h6 class="fw-bold mb-0">🎓 Booking Terbaru (Kuliah)</h6>
                 <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'kuliah']) }}" class="btn btn-sm btn-outline-primary">
                     Lihat Semua
                 </a>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered mb-0">
+                    <table class="table table-bordered mb-0" id="tabelBookingKuliah">
                         <thead class="table-light">
                             <tr>
                                 <th>Nama Peminjam</th>
@@ -235,7 +232,7 @@
                                     </td>
                                     <td>
                                         @if ($booking->details->isNotEmpty())
-                                            <span class="small">{{ $booking->details->map(fn ($d) => ($d->asetUmum->nama_alat ?? '-') . ' x' . $d->jumlah)->join(', ') }}</span>
+                                            <span class="small">{{ $booking->details->map(fn ($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->join(', ') }}</span>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -250,9 +247,22 @@
                             @endforelse
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
+
+        {{-- ringkasan pemeliharaan proyektor, detail lengkapnya di menu Pemeliharaan Proyektor --}}
+        <a href="{{ route('admin.pemeliharaan-proyektor') }}" class="text-decoration-none">
+            <div class="alert {{ $jumlahProyektorPerluPemeliharaan > 0 ? 'alert-danger' : 'alert-success' }} mb-4 d-flex justify-content-between align-items-center">
+                <span>🎥 <strong>Pemeliharaan Proyektor</strong></span>
+                <span>
+                    @if ($jumlahProyektorPerluPemeliharaan > 0)
+                        <b>{{ $jumlahProyektorPerluPemeliharaan }}</b> unit perlu pemeliharaan segera &rarr;
+                    @else
+                        Semua unit dalam kondisi normal &rarr;
+                    @endif
+                </span>
+            </div>
+        </a>
 
         {{-- grafik --}}
         <div class="row">
@@ -260,7 +270,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">📈 Jumlah Peminjaman per Bulan</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartPerBulan"></canvas>
                         </div>
                     </div>
@@ -270,7 +280,7 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h6 class="fw-bold mb-3">📊 Proporsi Status Aset Umum</h6>
-                        <div style="height: 260px;">
+                        <div class="chart-box" style="height: 260px;">
                             <canvas id="chartStatusAset"></canvas>
                         </div>
                     </div>
@@ -282,8 +292,24 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script>
+        $(function () {
+            // di layar lebar (PC) DataTables otomatis nampilin semua kolom lengkap (ruangnya cukup).
+            // Cuma di HP kolomnya baru ngelipet otomatis ngikut lebar layar yang beneran tersedia.
+            const opsiTabelRingkasan = {
+                responsive: true,
+                paging: false,
+                searching: false,
+                info: false,
+                ordering: false,
+            };
+            $('#tabelBookingOrganisasi').DataTable(opsiTabelRingkasan);
+            $('#tabelBookingKuliah').DataTable(opsiTabelRingkasan);
+        });
+
         const labelBulan = @json($labelBulan);
         const dataPerBulan = @json($dataPerBulan);
+
+        Chart.defaults.font.size = window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 12);
 
         new Chart(document.getElementById('chartPerBulan'), {
             type: 'bar',

@@ -18,6 +18,18 @@
             </div>
 
             <div class="mb-3">
+                <label>Gedung</label>
+                <select name="gedung" class="form-select">
+                    <option value="" @selected(old('gedung', $asetKelas->gedung) === null || old('gedung', $asetKelas->gedung) === '')>Lainnya</option>
+                    <option value="Gedung A" @selected(old('gedung', $asetKelas->gedung) === 'Gedung A')>Gedung A</option>
+                    <option value="Gedung B" @selected(old('gedung', $asetKelas->gedung) === 'Gedung B')>Gedung B</option>
+                    <option value="Gedung C" @selected(old('gedung', $asetKelas->gedung) === 'Gedung C')>Gedung C</option>
+                    <option value="Gedung D" @selected(old('gedung', $asetKelas->gedung) === 'Gedung D')>Gedung D</option>
+                </select>
+                @error('gedung') <small class="text-danger">{{ $message }}</small> @enderror
+            </div>
+
+            <div class="mb-3">
                 <label>Kapasitas</label>
                 <input type="number" name="kapasitas" class="form-control" value="{{ old('kapasitas', $asetKelas->kapasitas) }}">
                 @error('kapasitas') <small class="text-danger">{{ $message }}</small> @enderror

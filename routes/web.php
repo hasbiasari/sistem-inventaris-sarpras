@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PeminjamanController;
+use App\Http\Controllers\PemeliharaanProyektorController;
 use App\Http\Controllers\AsetUmumController;
 use App\Http\Controllers\AsetKelasController;
 use App\Http\Controllers\DashboardRedirectController;
@@ -25,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/notifikasi/data', [NotifikasiController::class, 'data'])->name('notifikasi.data');
     Route::post('/notifikasi/tandai-dibaca', [NotifikasiController::class, 'tandaiDibaca'])->name('notifikasi.tandai-dibaca');
+    Route::post('/notifikasi/{notifikasi}/tandai-dibaca', [NotifikasiController::class, 'tandaiSatuDibaca'])->name('notifikasi.tandai-satu-dibaca');
     Route::get('/status-ruangan', [AsetKelasController::class, 'statusRuangan'])->name('status-ruangan');
     Route::get('/peminjaman/cek-ruangan-bentrok', [PeminjamanController::class, 'cekRuanganBentrok'])->name('peminjaman.cek-ruangan-bentrok');
     Route::get('/peminjaman/cek-stok-barang', [PeminjamanController::class, 'cekStokBarang'])->name('peminjaman.cek-stok-barang');
@@ -54,6 +56,10 @@ Route::middleware(['auth', 'role:admin_tu'])->group(function () {
     Route::get('/admin/aset-umum/{asetUmum}/edit', [AsetUmumController::class, 'edit'])->name('admin.aset-umum.edit');
     Route::put('/admin/aset-umum/{asetUmum}', [AsetUmumController::class, 'update'])->name('admin.aset-umum.update');
     Route::delete('/admin/aset-umum/{asetUmum}', [AsetUmumController::class, 'destroy'])->name('admin.aset-umum.destroy');
+    Route::get('/admin/pemeliharaan-proyektor', [PemeliharaanProyektorController::class, 'index'])->name('admin.pemeliharaan-proyektor');
+    Route::post('/admin/pemeliharaan-proyektor/{asetUmum}/set-pemeliharaan', [PemeliharaanProyektorController::class, 'setPemeliharaan'])->name('admin.pemeliharaan-proyektor.set-pemeliharaan');
+    Route::post('/admin/pemeliharaan-proyektor/{asetUmum}/selesai-pemeliharaan', [PemeliharaanProyektorController::class, 'selesaiPemeliharaan'])->name('admin.pemeliharaan-proyektor.selesai-pemeliharaan');
+    Route::patch('/admin/pemeliharaan-proyektor/{asetUmum}/jam-pakai', [PemeliharaanProyektorController::class, 'updateJamPakai'])->name('admin.pemeliharaan-proyektor.update-jam-pakai');
     Route::get('/admin/laporan-peminjaman', [PeminjamanController::class, 'laporan'])->name('admin.peminjaman.laporan');
     Route::patch('/admin/peminjaman-kuliah/{peminjaman}/batalkan', [PeminjamanController::class, 'kuliahBatalkan'])->name('admin.peminjaman.kuliah.batalkan');
     Route::patch('/admin/peminjaman-organisasi/{peminjaman}/setujui', [PeminjamanController::class, 'organisasiSetujui'])->name('admin.peminjaman.organisasi.setujui');
