@@ -87,7 +87,7 @@ class AsetUmum extends Model
         return app(PrediksiProyektorService::class)->smaJamMingguan($this, $jumlahMinggu);
     }
 
-    // 80% dari batas jam maksimal -- proyektor dianggap perlu servis begitu nyampe titik ini
+    // Batas servis = batas jam maksimal alat itu sendiri (titik 100% buat persentase_menuju_servis)
     public function getThresholdServisAttribute()
     {
         return app(PrediksiProyektorService::class)->thresholdServis($this);

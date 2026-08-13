@@ -2,27 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AsetKelas;
-use App\Models\AsetUmum;
-use App\Models\Mahasiswa;
 use App\Models\Peminjaman;
 
 class PimpinanController extends Controller
 {
-    // dashboard pemantauan aset & peminjaman buat Pimpinan (read-only)
+    // dashboard pemantauan peminjaman buat Pimpinan (read-only) -- pemantauan aset & proyektor
+    // udah ada menu sendiri (Pemeliharaan Proyektor, dst), jadi gak diduplikasi di sini
     public function dashboard()
     {
-        $totalKelas         = AsetKelas::count();
-        $totalMahasiswa     = Mahasiswa::count();
-        $totalAlat          = AsetUmum::count();
-
-        // status_efektif dihitung ulang dari peminjaman yang aktif sekarang
-        $daftarAlat = AsetUmum::with('peminjamanDetailAktifSekarang')->latest()->get();
-        $alatTersedia       = $daftarAlat->where('status_efektif', 'tersedia')->count();
-        $alatDipinjam       = $daftarAlat->where('status_efektif', 'dipinjam')->count();
-        $alatRusak          = $daftarAlat->where('status_efektif', 'rusak')->count();
-        $alatPemeliharaan   = $daftarAlat->where('status_efektif', 'pemeliharaan')->count();
-
         // ringkasan peminjaman: total, aktif, selesai bulan ini
         $totalPeminjaman = Peminjaman::bukanSimulasi()->count();
         $peminjamanAktif = Peminjaman::where('status', 'disetujui')->count();
@@ -53,22 +40,7 @@ class PimpinanController extends Controller
             ->take(5)
             ->get();
 
-        // tren pemakaian proyektor per minggu (gabungan semua unit) + overlay SMA rolling 4 minggu,
-        // biar keliatan efek "smoothing"-nya dibanding data mentah per minggu
-        $trenProyektor = AsetUmum::trenMingguanGabungan(8);
-        $labelMingguProyektor = $trenProyektor['label'];
-        $dataJamProyektor = $trenProyektor['jam'];
-        $dataSmaProyektor = $trenProyektor['sma'];
-
         return view('pimpinan.dashboard', compact(
-            'totalKelas',
-            'totalMahasiswa',
-            'totalAlat',
-            'alatTersedia',
-            'alatDipinjam',
-            'alatRusak',
-            'alatPemeliharaan',
-            'daftarAlat',
             'totalPeminjaman',
             'peminjamanAktif',
             'selesaiBulanIni',
@@ -76,10 +48,7 @@ class PimpinanController extends Controller
             'jumlahOrganisasi',
             'labelBulanTren',
             'dataBulanTren',
-            'peminjamanTerakhir',
-            'labelMingguProyektor',
-            'dataJamProyektor',
-            'dataSmaProyektor'
+            'peminjamanTerakhir'
         ));
     }
 

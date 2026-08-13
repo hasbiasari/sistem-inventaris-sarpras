@@ -2,30 +2,71 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ProyektorExport;
 use App\Models\AsetUmum;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PemeliharaanProyektorController extends Controller
 {
     // daftar proyektor + prediksi pemeliharaan (SMA)
     public function index()
     {
-        // yang paling kritis (persentase menuju threshold tertinggi) di atas
-        $daftarProyektor = AsetUmum::where('nama_alat', 'Proyektor')
-            ->get()
-            ->sortByDesc('persentase_menuju_servis')
-            ->values();
+        $daftarProyektor = $this->ambilDaftarProyektor();
 
-        $ringkasanStatus = [
-            'normal' => $daftarProyektor->where('status_pemeliharaan', 'normal')->count(),
-            'perlu_perhatian' => $daftarProyektor->where('status_pemeliharaan', 'perlu_perhatian')->count(),
-            'perlu_pemeliharaan' => $daftarProyektor->where('status_pemeliharaan', 'perlu_pemeliharaan')->count(),
-        ];
+        $ringkasanStatus = $this->hitungRingkasanStatus($daftarProyektor);
 
         // tren pemakaian per minggu (gabungan semua unit) + overlay SMA rolling 4 minggu
         $trenProyektor = AsetUmum::trenMingguanGabungan(8);
 
         return view('pemeliharaan-proyektor.index', compact('daftarProyektor', 'ringkasanStatus', 'trenProyektor'));
+    }
+
+    // daftar proyektor, yang paling kritis (persentase menuju threshold tertinggi) di atas
+    private function ambilDaftarProyektor()
+    {
+        return AsetUmum::where('nama_alat', 'Proyektor')
+            ->get()
+            ->sortByDesc('persentase_menuju_servis')
+            ->values();
+    }
+
+    private function hitungRingkasanStatus($daftarProyektor): array
+    {
+        return [
+            'normal' => $daftarProyektor->where('status_pemeliharaan', 'normal')->count(),
+            'perlu_perhatian' => $daftarProyektor->where('status_pemeliharaan', 'perlu_perhatian')->count(),
+            'perlu_pemeliharaan' => $daftarProyektor->where('status_pemeliharaan', 'perlu_pemeliharaan')->count(),
+            'dalam_pemeliharaan' => $daftarProyektor->where('status_pemeliharaan', 'dalam_pemeliharaan')->count(),
+        ];
+    }
+
+    // export laporan servis proyektor ke PDF -- halaman ini belum ada filter tab, jadi selalu semua data
+    public function exportPdf()
+    {
+        $daftarProyektor = $this->ambilDaftarProyektor();
+        $ringkasanStatus = $this->hitungRingkasanStatus($daftarProyektor);
+
+        $judulLaporan = 'Laporan Servis Proyektor';
+        $labelFilter = 'Semua Data';
+
+        $pdf = Pdf::loadView('pemeliharaan-proyektor.laporan-pdf', compact('daftarProyektor', 'ringkasanStatus', 'judulLaporan', 'labelFilter'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->stream('laporan-servis-proyektor-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // export laporan servis proyektor ke Excel -- sama kayak PDF, selalu semua data
+    public function exportExcel()
+    {
+        $daftarProyektor = $this->ambilDaftarProyektor();
+        $ringkasanStatus = $this->hitungRingkasanStatus($daftarProyektor);
+
+        return Excel::download(
+            new ProyektorExport($daftarProyektor, 'Semua Data', $ringkasanStatus),
+            'laporan-servis-proyektor-' . now()->format('Y-m-d') . '.xlsx'
+        );
     }
 
     // proyektor ditarik buat diservis

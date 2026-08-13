@@ -74,6 +74,13 @@
                     </a>
                 </div>
 
+                <div class="alert alert-info d-none d-flex justify-content-between align-items-center" id="alertFilterStatus">
+                    <span id="pesanFilterStatus"></span>
+                    <a href="{{ route('pimpinan.peminjaman') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Reset Filter
+                    </a>
+                </div>
+
                 <table class="table table-bordered" id="tabelPeminjaman">
                     <thead>
                         <tr>
@@ -82,7 +89,7 @@
                             <th>Kategori</th>
                             <th>Kelas / Ormawa</th>
                             <th>Ruangan</th>
-                            <th>Tanggal</th>
+                            <th>Jadwal Pakai</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -101,7 +108,7 @@
                                 $labelStatus = $peminjaman->status === 'selesai' ? 'Dikembalikan' : ucfirst($peminjaman->status);
                                 $kategoriFilter = $peminjaman->jenis_peminjam === 'eksternal' ? 'eksternal' : ($peminjaman->kategori ?? 'lainnya');
                             @endphp
-                            <tr data-kategori="{{ $kategoriFilter }}">
+                            <tr data-kategori="{{ $kategoriFilter }}" data-status="{{ $peminjaman->status }}">
                                 <td>{{ $index + 1 }}</td>
                                 <td>{{ $peminjaman->nama_peminjam }}</td>
                                 <td>{{ ucfirst($kategoriFilter) }}</td>
@@ -113,7 +120,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>{{ $peminjaman->created_at->format('d/m/Y') }}</td>
+                                <td>{{ $peminjaman->rentang_waktu }}</td>
                                 <td><span class="badge bg-{{ $warnaBadge }}">{{ $labelStatus }}</span></td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $peminjaman->id }}">
@@ -198,6 +205,9 @@
         const labelStatus = { menunggu: 'Menunggu', disetujui: 'Disetujui', ditolak: 'Ditolak', dibatalkan: 'Dibatalkan', selesai: 'Selesai' };
         const warnaStatus = { menunggu: '#DDA23F', disetujui: '#0F6B4C', ditolak: '#CD5A5A', dibatalkan: '#6C757D', selesai: '#3F8FD1' };
 
+        // filter status dari URL, misal ?status=disetujui pas datang dari kartu "Peminjaman Aktif" di dashboard
+        const filterStatusAktif = new URLSearchParams(window.location.search).get('status');
+
         let chartDistribusi;
 
         function renderChartDistribusi(filter) {
@@ -281,9 +291,10 @@
 
             let filterAktif = 'semua';
             $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-                if (filterAktif === 'semua') return true;
                 const baris = table.row(dataIndex).node();
-                return $(baris).data('kategori') === filterAktif;
+                if (filterAktif !== 'semua' && $(baris).data('kategori') !== filterAktif) return false;
+                if (filterStatusAktif && $(baris).data('status') !== filterStatusAktif) return false;
+                return true;
             });
 
             $('.btn-filter-kategori').on('click', function () {
@@ -293,6 +304,15 @@
                 table.draw();
                 renderChartDistribusi(filterAktif);
             });
+
+            // datang dari kartu ringkasan di Dashboard Pimpinan (misal ?status=disetujui buat "Peminjaman Aktif")
+            // -- biar gak bingung mana yang dimaksud pas jumlahnya banyak, tabel langsung kefilter
+            const labelFilterStatus = { menunggu: 'Menunggu', disetujui: 'Disetujui (Aktif)', ditolak: 'Ditolak', dibatalkan: 'Dibatalkan', selesai: 'Selesai / Dikembalikan' };
+            if (filterStatusAktif && labelFilterStatus[filterStatusAktif]) {
+                $('#alertFilterStatus').removeClass('d-none');
+                $('#pesanFilterStatus').text('Menampilkan hanya peminjaman berstatus: ' + labelFilterStatus[filterStatusAktif]);
+                table.draw();
+            }
         });
     </script>
 </x-app-layout>

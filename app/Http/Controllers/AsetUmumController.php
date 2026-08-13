@@ -11,6 +11,9 @@ class AsetUmumController extends Controller
     public function index(Request $request)
     {
         $keyword = $request->input('cari');
+        $filterStatus = in_array($request->input('status'), ['tersedia', 'dipinjam', 'rusak', 'pemeliharaan'])
+            ? $request->input('status')
+            : null;
 
         // urutan diinget lewat session, biar gak reset ke a-z tiap balik ke halaman ini
         if ($request->has('urutan')) {
@@ -35,7 +38,13 @@ class AsetUmumController extends Controller
             })
             ->get();
 
-        return view('aset-umum.index', compact('asetUmum', 'keyword', 'urutan'));
+        // status_efektif itu accessor terhitung (ikut peminjaman aktif), bukan kolom DB biasa,
+        // jadi filternya di PHP -- dipakai dari kartu ringkasan status di Dashboard Admin TU
+        if ($filterStatus) {
+            $asetUmum = $asetUmum->filter(fn ($alat) => $alat->status_efektif === $filterStatus)->values();
+        }
+
+        return view('aset-umum.index', compact('asetUmum', 'keyword', 'urutan', 'filterStatus'));
     }
 
     // form tambah aset

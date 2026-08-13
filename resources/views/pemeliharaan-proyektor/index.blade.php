@@ -1,8 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Pemeliharaan Proyektor
-        </h2>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight mb-0">
+                Pemeliharaan Proyektor
+            </h2>
+            <div class="dropdown">
+                <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ route('admin.pemeliharaan-proyektor.export-pdf') }}" target="_blank"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> PDF</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.pemeliharaan-proyektor.export-excel') }}" target="_blank"><i class="bi bi-file-earmark-excel-fill text-success"></i> Excel</a></li>
+                </ul>
+            </div>
+        </div>
     </x-slot>
 
     <div class="container py-4">
@@ -18,51 +29,53 @@
                 <ul class="mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
-                    @endforeach
+                    @endforeach 
                 </ul>
             </div>
         @endif
 
-        <p class="text-muted mb-4">
-            Prediksi kapan tiap unit proyektor perlu diservis, dihitung pakai rata-rata pemakaian per minggu
-            (Simple Moving Average) dari 4 minggu terakhir. Batas servis = 80% dari jam pakai maksimal.
-        </p>
-
-        {{-- ringkasan status --}}
+        {{-- ringkasan status -- diklik buat filter tabel di bawah, klik lagi buat reset --}}
         <div class="row g-3 mb-4">
             <div class="col-md-4">
-                <div class="stat-accent-card accent-success">
+                <button type="button" class="stat-accent-card accent-success btn-filter-status-proyektor w-100 text-start" data-status="normal">
                     <div class="stat-accent-icon accent-success"><i class="bi bi-check-circle-fill"></i></div>
                     <div>
                         <div class="stat-accent-value">{{ $ringkasanStatus['normal'] }}</div>
                         <div class="stat-accent-label">Normal</div>
                     </div>
-                </div>
+                </button>
             </div>
             <div class="col-md-4">
-                <div class="stat-accent-card accent-warning">
+                <button type="button" class="stat-accent-card accent-warning btn-filter-status-proyektor w-100 text-start" data-status="perlu_perhatian">
                     <div class="stat-accent-icon accent-warning"><i class="bi bi-exclamation-triangle-fill"></i></div>
                     <div>
                         <div class="stat-accent-value">{{ $ringkasanStatus['perlu_perhatian'] }}</div>
                         <div class="stat-accent-label">Perlu Perhatian</div>
                     </div>
-                </div>
+                </button>
             </div>
             <div class="col-md-4">
-                <div class="stat-accent-card accent-danger">
+                <button type="button" class="stat-accent-card accent-danger btn-filter-status-proyektor w-100 text-start" data-status="perlu_pemeliharaan">
                     <div class="stat-accent-icon accent-danger"><i class="bi bi-tools"></i></div>
                     <div>
                         <div class="stat-accent-value">{{ $ringkasanStatus['perlu_pemeliharaan'] }}</div>
                         <div class="stat-accent-label">Perlu Pemeliharaan</div>
                     </div>
-                </div>
+                </button>
             </div>
+        </div>
+
+        <div class="alert alert-info d-none d-flex justify-content-between align-items-center" id="alertFilterStatusProyektor">
+            <span id="pesanFilterStatusProyektor"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnResetFilterStatusProyektor">
+                <i class="bi bi-x-circle"></i> Reset Filter
+            </button>
         </div>
 
         {{-- tren pemakaian mingguan + SMA --}}
         <div class="card card-elevated mb-4">
             <div class="card-body">
-                <h6 class="fw-bold mb-3">📈 Tren Pemakaian Proyektor per Minggu (SMA)</h6>
+                <h6 class="fw-bold mb-3">📈 Tren Pemakaian Proyektor per Minggu (SMA)</h10>
                 <div class="chart-box" style="height: 280px;">
                     <canvas id="chartTrenProyektor"></canvas>
                 </div>
@@ -80,7 +93,9 @@
                                 <th>Menuju Batas Servis</th>
                                 <th>Estimasi Servis</th>
                                 <th>Status</th>
-                                <th>Aksi</th>
+                                @if (auth()->user()->role === 'admin_tu')
+                                    <th>Aksi</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -89,7 +104,7 @@
                                     $persentase = min(100, $proyektor->persentase_menuju_servis ?? 0);
                                     $estimasi = $proyektor->estimasiMingguMenujuServis();
                                 @endphp
-                                <tr class="{{ $proyektor->kelas_baris }}">
+                                <tr class="{{ $proyektor->kelas_baris }}" data-status-pemeliharaan="{{ $proyektor->status_pemeliharaan }}">
                                     <td>#{{ $proyektor->nomor_unit }}</td>
                                     <td>{{ $proyektor->merek ?? '-' }}</td>
                                     <td>{{ $proyektor->total_jam_pakai }} / {{ $proyektor->batas_jam_maksimal }} jam</td>
@@ -127,6 +142,7 @@
                                                 <span class="badge bg-success">Normal</span>
                                         @endswitch
                                     </td>
+                                    @if (auth()->user()->role === 'admin_tu')
                                     <td>
                                         <div class="d-flex flex-wrap gap-1">
                                             @if ($proyektor->status === 'pemeliharaan')
@@ -181,10 +197,11 @@
                                             </div>
                                         </div>
                                     </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">Belum ada data proyektor.</td>
+                                    <td colspan="{{ auth()->user()->role === 'admin_tu' ? 7 : 6 }}" class="text-center text-muted">Belum ada data proyektor.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -197,11 +214,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script>
         $(function () {
-            $('#tabelProyektor').DataTable({
+            const table = $('#tabelProyektor').DataTable({
                 responsive: true,
-                // Aksi dikunci selalu tampil (isinya ada modal per-baris, jangan sampai ikut
-                // kelipet). Kolom lain biar DataTables yang atur otomatis ngikut lebar layar --
-                // di layar lebar (PC) otomatis semua kolom kekejar muat & tampil lengkap.
                 columnDefs: [
                     { className: 'all', targets: -1 },
                 ],
@@ -217,6 +231,38 @@
                     zeroRecords: "Tidak ada data yang cocok",
                     emptyTable: "Belum ada data proyektor.",
                 }
+            });
+
+            // klik kartu ringkasan status -> filter tabel di bawah, klik lagi kartu yang sama buat reset
+            const labelStatusProyektor = { normal: 'Normal', perlu_perhatian: 'Perlu Perhatian', perlu_pemeliharaan: 'Perlu Pemeliharaan' };
+            let filterStatusProyektor = null;
+
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (!filterStatusProyektor) return true;
+                return $(table.row(dataIndex).node()).data('status-pemeliharaan') === filterStatusProyektor;
+            });
+
+            function terapkanFilterStatusProyektor() {
+                $('.btn-filter-status-proyektor').removeClass('active-filter');
+                if (filterStatusProyektor) {
+                    $('.btn-filter-status-proyektor[data-status="' + filterStatusProyektor + '"]').addClass('active-filter');
+                    $('#alertFilterStatusProyektor').removeClass('d-none');
+                    $('#pesanFilterStatusProyektor').text('Menampilkan hanya unit berstatus: ' + labelStatusProyektor[filterStatusProyektor]);
+                } else {
+                    $('#alertFilterStatusProyektor').addClass('d-none');
+                }
+                table.draw();
+            }
+
+            $('.btn-filter-status-proyektor').on('click', function () {
+                const status = $(this).data('status');
+                filterStatusProyektor = filterStatusProyektor === status ? null : status;
+                terapkanFilterStatusProyektor();
+            });
+
+            $('#btnResetFilterStatusProyektor').on('click', function () {
+                filterStatusProyektor = null;
+                terapkanFilterStatusProyektor();
             });
         });
 
@@ -291,4 +337,23 @@
             });
         });
     </script>
+
+    <style>
+        .btn-filter-status-proyektor {
+            border-top: none;
+            border-right: none;
+            border-bottom: none;
+            cursor: pointer;
+            transition: box-shadow .15s ease;
+        }
+
+        .btn-filter-status-proyektor:hover {
+            box-shadow: 0 4px 16px rgba(20, 30, 50, .14);
+        }
+
+        .btn-filter-status-proyektor.active-filter {
+            outline: 2px solid currentColor;
+            outline-offset: -2px;
+        }
+    </style>
 </x-app-layout>

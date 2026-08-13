@@ -223,6 +223,12 @@
             renderTabelRuangan();
         });
 
+        // datang dari kartu ringkasan di Dashboard (misal ?status=kosong), langsung kefilter -- gak perlu pilih manual lagi
+        const statusRuanganDariUrl = new URLSearchParams(window.location.search).get('status');
+        if (statusRuanganDariUrl) {
+            document.getElementById('filter-status-ruangan').value = statusRuanganDariUrl;
+        }
+
         // status ruangan real-time, bisa difilter ke tanggal lain
         const inputFilterTanggalRuangan = document.getElementById('filter-tanggal-ruangan');
         const labelStatusRuangan = document.getElementById('label-status-ruangan');

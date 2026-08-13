@@ -56,11 +56,9 @@ Route::middleware(['auth', 'role:admin_tu'])->group(function () {
     Route::get('/admin/aset-umum/{asetUmum}/edit', [AsetUmumController::class, 'edit'])->name('admin.aset-umum.edit');
     Route::put('/admin/aset-umum/{asetUmum}', [AsetUmumController::class, 'update'])->name('admin.aset-umum.update');
     Route::delete('/admin/aset-umum/{asetUmum}', [AsetUmumController::class, 'destroy'])->name('admin.aset-umum.destroy');
-    Route::get('/admin/pemeliharaan-proyektor', [PemeliharaanProyektorController::class, 'index'])->name('admin.pemeliharaan-proyektor');
     Route::post('/admin/pemeliharaan-proyektor/{asetUmum}/set-pemeliharaan', [PemeliharaanProyektorController::class, 'setPemeliharaan'])->name('admin.pemeliharaan-proyektor.set-pemeliharaan');
     Route::post('/admin/pemeliharaan-proyektor/{asetUmum}/selesai-pemeliharaan', [PemeliharaanProyektorController::class, 'selesaiPemeliharaan'])->name('admin.pemeliharaan-proyektor.selesai-pemeliharaan');
     Route::patch('/admin/pemeliharaan-proyektor/{asetUmum}/jam-pakai', [PemeliharaanProyektorController::class, 'updateJamPakai'])->name('admin.pemeliharaan-proyektor.update-jam-pakai');
-    Route::get('/admin/laporan-peminjaman', [PeminjamanController::class, 'laporan'])->name('admin.peminjaman.laporan');
     Route::patch('/admin/peminjaman-kuliah/{peminjaman}/batalkan', [PeminjamanController::class, 'kuliahBatalkan'])->name('admin.peminjaman.kuliah.batalkan');
     Route::patch('/admin/peminjaman-organisasi/{peminjaman}/setujui', [PeminjamanController::class, 'organisasiSetujui'])->name('admin.peminjaman.organisasi.setujui');
     Route::patch('/admin/peminjaman-organisasi/{peminjaman}/tolak', [PeminjamanController::class, 'organisasiTolak'])->name('admin.peminjaman.organisasi.tolak');
@@ -90,6 +88,16 @@ Route::middleware(['auth', 'role:mahasiswa'])->group(function () {
 Route::middleware(['auth', 'role:pimpinan'])->group(function () {
     Route::get('/pimpinan/dashboard', [PimpinanController::class, 'dashboard'])->name('pimpinan.dashboard');
     Route::get('/pimpinan/peminjaman', [PimpinanController::class, 'peminjaman'])->name('pimpinan.peminjaman');
+});
+
+// diakses admin TU & pimpinan berdua -- view + export doang, semua route mutasi (set/selesai
+Route::middleware(['auth', 'role:admin_tu,pimpinan'])->group(function () {
+    Route::get('/admin/pemeliharaan-proyektor', [PemeliharaanProyektorController::class, 'index'])->name('admin.pemeliharaan-proyektor');
+    Route::get('/admin/pemeliharaan-proyektor/export-pdf', [PemeliharaanProyektorController::class, 'exportPdf'])->name('admin.pemeliharaan-proyektor.export-pdf');
+    Route::get('/admin/pemeliharaan-proyektor/export-excel', [PemeliharaanProyektorController::class, 'exportExcel'])->name('admin.pemeliharaan-proyektor.export-excel');
+    Route::get('/admin/laporan-peminjaman', [PeminjamanController::class, 'laporan'])->name('admin.peminjaman.laporan');
+    Route::get('/admin/laporan-peminjaman/export-pdf', [PeminjamanController::class, 'laporanExportPdf'])->name('admin.peminjaman.laporan.export-pdf');
+    Route::get('/admin/laporan-peminjaman/export-excel', [PeminjamanController::class, 'laporanExportExcel'])->name('admin.peminjaman.laporan.export-excel');
 });
 
 require __DIR__.'/auth.php';

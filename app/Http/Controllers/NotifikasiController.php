@@ -53,14 +53,14 @@ class NotifikasiController extends Controller
             Notifikasi::create([
                 'user_id' => $mahasiswa->user_id,
                 'pesan' => 'Peminjaman kamu sudah melebihi jam waktu, segera kembalikan ke TU.',
-                'link' => route('peminjaman.show', $peminjaman->id, false),
+                'link' => route('peminjaman.show', $peminjaman->id),
             ]);
 
             $peminjaman->update(['notifikasi_terlambat_at' => now()]);
         }
     }
 
-    // cek proyektor yang masuk tingkat "perlu perhatian" (60-99%) ATAU udah "perlu pemeliharaan" (>=100%),
+    // cek proyektor yang masuk tingkat "perlu perhatian" (70-79.99%) ATAU udah "perlu pemeliharaan" (>=80%),
     // kirim notif ke semua admin -- 2 tingkat ini ditandai kolom terpisah, biar notif "perlu perhatian"
     // yang duluan muncul gak nutupin notif "perlu pemeliharaan" yang lebih mendesak pas nanti nyampe situ
     private function kirimNotifikasiPemeliharaan()
@@ -98,7 +98,7 @@ class NotifikasiController extends Controller
                 Notifikasi::create([
                     'user_id' => $admin->id,
                     'pesan' => $buatPesan($alat),
-                    'link' => route('admin.pemeliharaan-proyektor', [], false),
+                    'link' => route('admin.pemeliharaan-proyektor'),
                 ]);
             }
 

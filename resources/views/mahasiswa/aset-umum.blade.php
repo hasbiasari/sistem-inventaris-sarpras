@@ -222,6 +222,12 @@
             renderTabelAset();
         });
 
+        // datang dari kartu ringkasan di Dashboard (misal ?status=dipinjam), langsung kefilter -- gak perlu pilih manual lagi
+        const statusDariUrl = new URLSearchParams(window.location.search).get('status');
+        if (statusDariUrl) {
+            document.getElementById('filter-status-aset').value = statusDariUrl;
+        }
+
         renderTabelAset();
 
         // polling data tiap 5 detik, bisa difilter ke tanggal lain

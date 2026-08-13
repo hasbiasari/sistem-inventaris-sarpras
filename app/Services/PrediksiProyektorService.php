@@ -7,24 +7,28 @@ use App\Models\AsetUmum;
 // Rumus fitur Prediksi Pemeliharaan Proyektor (algoritma SMA), semua numpuk di sini
 class PrediksiProyektorService
 {
-    // Batas servis, 80% dari jam maksimal
-    // Rumus: threshold_servis = batas_jam_maksimal x 0.8
+    // Persentase menuju batas servis yang bikin status jadi "perlu pemeliharaan" (merah)
+    private const PERSEN_PERLU_PEMELIHARAAN = 80;
+
+    // Persentase menuju batas servis yang bikin status jadi "perlu perhatian" (kuning)
+    private const PERSEN_PERLU_PERHATIAN = 70;
+
+    // Batas servis = batas jam maksimal alat itu sendiri.
+    // 100% artinya total_jam_pakai udah sama persis dengan batas_jam_maksimal (mis. 6000/6000 jam) --
+    // bisa lebih dari 100% kalau total_jam_pakai udah kelewat dari batas_jam_maksimal
     public function thresholdServis(AsetUmum $aset): ?float
     {
-        return $aset->batas_jam_maksimal ? round($aset->batas_jam_maksimal * 0.8, 2) : null;
+        return $aset->batas_jam_maksimal ? (float) $aset->batas_jam_maksimal : null;
     }
 
-    // Cek udah lewat batas servis atau belum
-    // Rumus: perlu_pemeliharaan = (total_jam_pakai >= threshold_servis)
+    // Cek udah nyampe titik "perlu pemeliharaan" (>= 80% batas servis) atau belum
     public function perluPemeliharaan(AsetUmum $aset): bool
     {
-        $threshold = $this->thresholdServis($aset);
-
-        return $threshold !== null && $aset->total_jam_pakai >= $threshold;
+        return ($this->persentaseMenujuServis($aset) ?? 0) >= self::PERSEN_PERLU_PEMELIHARAAN;
     }
 
     // Persentase menuju batas servis
-    // Rumus: persentase = (total_jam_pakai / threshold_servis) x 100
+    // Rumus: persentase = (total_jam_pakai / batas_servis) x 100
     public function persentaseMenujuServis(AsetUmum $aset): ?float
     {
         $threshold = $this->thresholdServis($aset);
@@ -36,18 +40,21 @@ class PrediksiProyektorService
         return round(($aset->total_jam_pakai / $threshold) * 100, 1);
     }
 
-    // Status 4 tingkat: normal, perhatian, pemeliharaan, dalam servis
+    // Status 4 tingkat, berdasarkan persentase menuju batas servis:
+    // >= 80% -> perlu_pemeliharaan (merah), 70-79.99% -> perlu_perhatian (kuning), < 70% -> normal (hijau)
     public function statusPemeliharaan(AsetUmum $aset): string
     {
         if ($aset->status === 'pemeliharaan') {
             return 'dalam_pemeliharaan';
         }
 
-        if ($this->perluPemeliharaan($aset)) {
+        $persentase = $this->persentaseMenujuServis($aset) ?? 0;
+
+        if ($persentase >= self::PERSEN_PERLU_PEMELIHARAAN) {
             return 'perlu_pemeliharaan';
         }
 
-        if (($this->persentaseMenujuServis($aset) ?? 0) >= 60) {
+        if ($persentase >= self::PERSEN_PERLU_PERHATIAN) {
             return 'perlu_perhatian';
         }
 
@@ -89,8 +96,8 @@ class PrediksiProyektorService
         return round($this->riwayatJamMingguan($aset, $jumlahMinggu)->avg('jam'), 2);
     }
 
-    // Estimasi minggu menuju batas servis
-    // Rumus: estimasi_minggu = (threshold_servis - total_jam_pakai) / SMA
+    // Estimasi minggu menuju titik "perlu pemeliharaan" (80% batas servis)
+    // Rumus: estimasi_minggu = ((batas_servis x 80%) - total_jam_pakai) / SMA
     // null = gak bisa diprediksi, 0 = udah harus servis sekarang
     public function estimasiMingguMenujuServis(AsetUmum $aset, int $jumlahMingguSma = 4): ?float
     {
@@ -110,7 +117,8 @@ class PrediksiProyektorService
             return null;
         }
 
-        $sisaJam = $threshold - $aset->total_jam_pakai;
+        $titikPerluPemeliharaan = $threshold * (self::PERSEN_PERLU_PEMELIHARAAN / 100);
+        $sisaJam = $titikPerluPemeliharaan - $aset->total_jam_pakai;
 
         return round($sisaJam / $sma, 1);
     }

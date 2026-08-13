@@ -28,10 +28,16 @@ class AsetKelasController extends Controller
                         'nama' => $p->nama_peminjam,
                         'kelas' => $p->kelas,
                         'ormawa' => $p->ormawa,
+                        'nama_kegiatan' => $p->nama_kegiatan,
+                        'keterangan_eksternal' => $p->keterangan_eksternal,
                         'kategori' => $p->kategori ?? 'eksternal',
                         'status' => $p->status,
+                        'catatan_admin' => $p->catatan_admin,
+                        'dokumen_izin' => $p->dokumen_izin,
+                        'waktu_mulai' => $p->created_at->format('d/m/Y H:i'),
+                        'rentang_tanggal' => $p->rentang_tanggal,
                         'sampai_tanggal' => $p->tanggal_selesai?->format('d/m/Y'),
-                        'barang' => $p->details->map(fn ($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->join(', '),
+                        'barang' => $p->details->map(fn ($d) => ($d->asetUmum->nama_lengkap ?? '-') . ' x' . $d->jumlah)->values()->all(),
                     ];
                 });
 

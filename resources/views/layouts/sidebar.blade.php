@@ -79,6 +79,18 @@
                     <span>Peminjaman</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->routeIs('admin.pemeliharaan-proyektor*') ? 'active' : '' }}">
+                <a href="{{ route('admin.pemeliharaan-proyektor') }}" class="sidebar-link">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Pemeliharaan Proyektor</span>
+                </a>
+            </li>
+            <li class="sidebar-item {{ request()->routeIs('admin.peminjaman.laporan*') ? 'active' : '' }}">
+                <a href="{{ route('admin.peminjaman.laporan') }}" class="sidebar-link">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                    <span>Laporan Peminjaman</span>
+                </a>
+            </li>
         @elseif (auth()->user()->role === 'mahasiswa')
             <li class="sidebar-title">Menu</li>
             <li class="sidebar-item {{ request()->routeIs('mahasiswa.dashboard') ? 'active' : '' }}">

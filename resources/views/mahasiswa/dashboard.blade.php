@@ -23,25 +23,31 @@
         <div class="dash-panel" data-panel="aset-umum">
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-green">
-                        <i class="bi bi-box-seam stat-tile-icon"></i>
-                        <div class="stat-tile-value">{{ $totalAsetUmum }}</div>
-                        <div class="stat-tile-label">Total Aset Umum</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-umum') }}" class="text-decoration-none">
+                        <div class="stat-tile tile-green">
+                            <i class="bi bi-box-seam stat-tile-icon"></i>
+                            <div class="stat-tile-value">{{ $totalAsetUmum }}</div>
+                            <div class="stat-tile-label">Total Aset Umum</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-blue">
-                        <i class="bi bi-check-circle stat-tile-icon"></i>
-                        <div class="stat-tile-value" id="tile-aset-tersedia">{{ $statusAset['tersedia'] }}</div>
-                        <div class="stat-tile-label">Tersedia</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-umum', ['status' => 'tersedia']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-blue">
+                            <i class="bi bi-check-circle stat-tile-icon"></i>
+                            <div class="stat-tile-value" id="tile-aset-tersedia">{{ $statusAset['tersedia'] }}</div>
+                            <div class="stat-tile-label">Tersedia</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-amber">
-                        <i class="bi bi-hourglass-split stat-tile-icon"></i>
-                        <div class="stat-tile-value" id="tile-aset-dipinjam">{{ $statusAset['dipinjam'] }}</div>
-                        <div class="stat-tile-label">Sedang Dipinjam</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-umum', ['status' => 'dipinjam']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-amber">
+                            <i class="bi bi-hourglass-split stat-tile-icon"></i>
+                            <div class="stat-tile-value" id="tile-aset-dipinjam">{{ $statusAset['dipinjam'] }}</div>
+                            <div class="stat-tile-label">Sedang Dipinjam</div>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -79,25 +85,31 @@
         <div class="dash-panel d-none" data-panel="aset-kelas">
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-green">
-                        <i class="bi bi-building stat-tile-icon"></i>
-                        <div class="stat-tile-value">{{ $totalAsetKelas }}</div>
-                        <div class="stat-tile-label">Total Ruangan Kelas</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-kelas') }}" class="text-decoration-none">
+                        <div class="stat-tile tile-green">
+                            <i class="bi bi-building stat-tile-icon"></i>
+                            <div class="stat-tile-value">{{ $totalAsetKelas }}</div>
+                            <div class="stat-tile-label">Total Ruangan Kelas</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-blue">
-                        <i class="bi bi-door-open stat-tile-icon"></i>
-                        <div class="stat-tile-value" id="tile-ruangan-kosong">-</div>
-                        <div class="stat-tile-label">Kosong Sekarang</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-kelas', ['status' => 'kosong']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-blue">
+                            <i class="bi bi-door-open stat-tile-icon"></i>
+                            <div class="stat-tile-value" id="tile-ruangan-kosong">-</div>
+                            <div class="stat-tile-label">Kosong Sekarang</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-4">
-                    <div class="stat-tile tile-amber">
-                        <i class="bi bi-door-closed stat-tile-icon"></i>
-                        <div class="stat-tile-value" id="tile-ruangan-terisi">-</div>
-                        <div class="stat-tile-label">Terisi Sekarang</div>
-                    </div>
+                    <a href="{{ route('mahasiswa.aset-kelas', ['status' => 'dipakai']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-amber">
+                            <i class="bi bi-door-closed stat-tile-icon"></i>
+                            <div class="stat-tile-value" id="tile-ruangan-terisi">-</div>
+                            <div class="stat-tile-label">Terisi Sekarang</div>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -125,14 +137,16 @@
         <div class="dash-panel d-none" data-panel="peminjaman-saya">
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-3">
-                    <div class="stat-tile tile-green">
-                        <i class="bi bi-journal-text stat-tile-icon"></i>
-                        <div class="stat-tile-value">{{ $statistikSaya['total'] }}</div>
-                        <div class="stat-tile-label">Total Peminjaman</div>
-                    </div>
+                    <a href="{{ route('peminjaman.riwayat') }}" class="text-decoration-none">
+                        <div class="stat-tile tile-green">
+                            <i class="bi bi-journal-text stat-tile-icon"></i>
+                            <div class="stat-tile-value">{{ $statistikSaya['total'] }}</div>
+                            <div class="stat-tile-label">Total Peminjaman</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-3">
-                    <a href="{{ route('peminjaman.riwayat') }}" class="text-decoration-none">
+                    <a href="{{ route('peminjaman.riwayat', ['status' => 'menunggu']) }}" class="text-decoration-none">
                         <div class="stat-tile tile-amber">
                             <i class="bi bi-hourglass-split stat-tile-icon"></i>
                             <div class="stat-tile-value">{{ $statistikSaya['menunggu'] }}</div>
@@ -141,18 +155,22 @@
                     </a>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="stat-tile tile-blue">
-                        <i class="bi bi-check-circle stat-tile-icon"></i>
-                        <div class="stat-tile-value">{{ $statistikSaya['disetujui'] }}</div>
-                        <div class="stat-tile-label">Disetujui</div>
-                    </div>
+                    <a href="{{ route('peminjaman.riwayat', ['status' => 'disetujui']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-blue">
+                            <i class="bi bi-check-circle stat-tile-icon"></i>
+                            <div class="stat-tile-value">{{ $statistikSaya['disetujui'] }}</div>
+                            <div class="stat-tile-label">Disetujui</div>
+                        </div>
+                    </a>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="stat-tile tile-red">
-                        <i class="bi bi-x-circle stat-tile-icon"></i>
-                        <div class="stat-tile-value">{{ $statistikSaya['ditolak'] }}</div>
-                        <div class="stat-tile-label">Ditolak</div>
-                    </div>
+                    <a href="{{ route('peminjaman.riwayat', ['status' => 'ditolak']) }}" class="text-decoration-none">
+                        <div class="stat-tile tile-red">
+                            <i class="bi bi-x-circle stat-tile-icon"></i>
+                            <div class="stat-tile-value">{{ $statistikSaya['ditolak'] }}</div>
+                            <div class="stat-tile-label">Ditolak</div>
+                        </div>
+                    </a>
                 </div>
             </div>
 

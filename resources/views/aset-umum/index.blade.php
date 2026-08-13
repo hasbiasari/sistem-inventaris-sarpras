@@ -13,6 +13,15 @@
             </div>
         @endif
 
+        @if ($filterStatus)
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <span>Menampilkan aset dengan status: <strong>{{ ucfirst($filterStatus) }}</strong></span>
+                <a href="{{ route('admin.aset-umum') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Reset Filter
+                </a>
+            </div>
+        @endif
+
         <div class="page-toolbar">
             <div class="toolbar-actions">
                 <a href="{{ route('admin.aset-umum.create') }}" class="btn btn-primary">

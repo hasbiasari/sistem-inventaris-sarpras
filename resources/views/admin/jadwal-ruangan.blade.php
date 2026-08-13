@@ -131,28 +131,63 @@
                                             <div class="modal-body">
                                                 @forelse ($ruangan['jadwal'] as $j)
                                                     @php
-                                                        $kelasOrmawa = $j['kategori'] === 'organisasi' ? ($j['ormawa'] ?? '-') : ($j['kelas'] ?? '-');
                                                         $warnaKategori = match($j['kategori']) {
                                                             'kuliah' => 'primary',
                                                             'organisasi' => 'info',
                                                             'eksternal' => 'dark',
                                                             default => 'secondary',
                                                         };
+                                                        $warnaStatus = match($j['status']) {
+                                                            'disetujui' => 'success',
+                                                            'ditolak' => 'danger',
+                                                            'menunggu' => 'warning',
+                                                            'dibatalkan' => 'secondary',
+                                                            'selesai' => 'info',
+                                                            default => 'dark',
+                                                        };
+                                                        $labelStatus = $j['status'] === 'selesai' ? 'Dikembalikan' : ucfirst($j['status']);
                                                     @endphp
                                                     <div class="mb-3 pb-3 {{ !$loop->last ? 'border-bottom' : '' }}">
-                                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
                                                             <span class="fw-semibold">{{ $j['jam_mulai'] }} - {{ $j['jam_selesai'] }}</span>
                                                             <span class="badge bg-{{ $warnaKategori }}">{{ ucfirst($j['kategori']) }}</span>
                                                         </div>
-                                                        <div class="small">{{ $kelasOrmawa }} &middot; oleh {{ $j['nama'] }}</div>
-                                                        @if ($j['status'] === 'menunggu')
-                                                            <span class="badge bg-warning text-dark small">Menunggu Persetujuan</span>
+
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Nama Peminjam</div><div>: {{ $j['nama'] }}</div></div>
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Kategori</div><div>: {{ ucfirst($j['kategori']) }}</div></div>
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Kelas</div><div>: {{ $j['kelas'] ?? '-' }}</div></div>
+                                                        @if ($j['ormawa'])
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">ORMAWA</div><div>: {{ $j['ormawa'] }}</div></div>
                                                         @endif
-                                                        @if ($j['sampai_tanggal'])
-                                                            <div class="small text-muted">Sampai {{ $j['sampai_tanggal'] }}</div>
+                                                        @if ($j['nama_kegiatan'])
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Nama Kegiatan</div><div>: {{ $j['nama_kegiatan'] }}</div></div>
                                                         @endif
-                                                        @if ($j['barang'])
-                                                            <div class="small text-muted">Barang: {{ $j['barang'] }}</div>
+                                                        @if ($j['keterangan_eksternal'])
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Keterangan</div><div>: {{ $j['keterangan_eksternal'] }}</div></div>
+                                                        @endif
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Status</div><div>: <span class="badge bg-{{ $warnaStatus }}">{{ $labelStatus }}</span></div></div>
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Waktu Mulai</div><div>: {{ $j['waktu_mulai'] }}</div></div>
+                                                        <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Ruangan</div><div>: {{ $ruangan['nama_ruangan'] }}, {{ $j['rentang_tanggal'] }} ({{ $j['jam_mulai'] }}-{{ $j['jam_selesai'] }})</div></div>
+                                                        @if ($j['status'] === 'ditolak' && $j['catatan_admin'])
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Alasan Ditolak</div><div>: {{ $j['catatan_admin'] }}</div></div>
+                                                        @endif
+                                                        @if ($j['status'] === 'dibatalkan' && $j['catatan_admin'])
+                                                            <div class="d-flex mb-1"><div class="fw-semibold" style="width:130px;">Alasan Dibatalkan</div><div>: {{ $j['catatan_admin'] }}</div></div>
+                                                        @endif
+
+                                                        <hr class="my-2">
+                                                        <strong>Barang yang dipinjam:</strong>
+                                                        <ul class="mb-2">
+                                                            @forelse ($j['barang'] as $namaBarang)
+                                                                <li>{{ $namaBarang }}</li>
+                                                            @empty
+                                                                <li class="text-muted">Tidak ada barang, cuma pinjam ruangan.</li>
+                                                            @endforelse
+                                                        </ul>
+                                                        @if ($j['dokumen_izin'])
+                                                            <a href="{{ asset('storage/' . $j['dokumen_izin']) }}" target="_blank" class="btn btn-sm btn-secondary mb-2">
+                                                                <i class="bi bi-file-earmark-pdf-fill"></i> Lihat Dokumen Izin
+                                                            </a>
                                                         @endif
                                                     </div>
                                                 @empty

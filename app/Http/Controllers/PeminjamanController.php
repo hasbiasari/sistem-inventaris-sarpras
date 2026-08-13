@@ -9,8 +9,11 @@ use App\Models\Notifikasi;
 use App\Models\Peminjaman;
 use App\Models\PeminjamanDetail;
 use App\Models\User;
+use App\Exports\PeminjamanExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PeminjamanController extends Controller
 {
@@ -391,7 +394,7 @@ class PeminjamanController extends Controller
                 Notifikasi::create([
                     'user_id' => $admin->id,
                     'pesan' => "Pengajuan peminjaman kuliah baru dari {$mahasiswa->nama}",
-                    'link' => route('admin.peminjaman.laporan', ['filter' => 'kuliah', 'highlight' => $peminjaman->id], false),
+                    'link' => route('admin.peminjaman.laporan', ['filter' => 'kuliah', 'highlight' => $peminjaman->id]),
                 ]);
             }
 
@@ -431,7 +434,7 @@ class PeminjamanController extends Controller
             Notifikasi::create([
                 'user_id' => $admin->id,
                 'pesan' => "Pengajuan peminjaman organisasi baru dari {$mahasiswa->nama}",
-                'link' => route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'highlight' => $peminjaman->id], false),
+                'link' => route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'highlight' => $peminjaman->id]),
             ]);
         }
 
@@ -489,7 +492,7 @@ class PeminjamanController extends Controller
             Notifikasi::create([
                 'user_id' => $admin->id,
                 'pesan' => "{$peminjaman->mahasiswa->nama} telah mengembalikan barang dari peminjaman {$peminjaman->kategori}.",
-                'link' => route('admin.peminjaman.laporan', ['filter' => $peminjaman->kategori, 'highlight' => $peminjaman->id], false),
+                'link' => route('admin.peminjaman.laporan', ['filter' => $peminjaman->kategori, 'highlight' => $peminjaman->id]),
             ]);
         }
 
@@ -512,17 +515,7 @@ class PeminjamanController extends Controller
     // laporan semua peminjaman, bisa difilter per kategori
     public function laporan(Request $request)
     {
-        $query = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas', 'buktiPengembalian'])->bukanSimulasi();
-
-        if ($request->filled('dari_tanggal')) {
-            $query->whereDate('created_at', '>=', $request->dari_tanggal);
-        }
-
-        if ($request->filled('sampai_tanggal')) {
-            $query->whereDate('created_at', '<=', $request->sampai_tanggal);
-        }
-
-        $daftarPeminjaman = $query->latest()->get();
+        $daftarPeminjaman = $this->ambilDataLaporanPeminjaman($request);
 
         $jumlahKuliah = $daftarPeminjaman->where('kategori', 'kuliah')->count();
         $jumlahOrganisasi = $daftarPeminjaman->where('kategori', 'organisasi')->count();
@@ -551,6 +544,81 @@ class PeminjamanController extends Controller
         ));
     }
 
+    // query dasar laporan peminjaman (filter tanggal) -- dipakai bareng sama laporan() & export PDF/Excel
+    private function ambilDataLaporanPeminjaman(Request $request)
+    {
+        $query = Peminjaman::with(['mahasiswa', 'details.asetUmum', 'asetKelas', 'buktiPengembalian'])->bukanSimulasi();
+
+        // filter berdasarkan tanggal pakai (bukan created_at), overlap sama rentang tanggal_pakai..tanggal_selesai
+        if ($request->filled('dari_tanggal')) {
+            $query->whereRaw('COALESCE(tanggal_selesai, tanggal_pakai) >= ?', [$request->dari_tanggal]);
+        }
+
+        if ($request->filled('sampai_tanggal')) {
+            $query->where('tanggal_pakai', '<=', $request->sampai_tanggal);
+        }
+
+        return $query->latest()->get();
+    }
+
+    // laporan peminjaman ngikutin filter kategori & tanggal yang lagi aktif -- dipakai bareng export PDF & Excel
+    private function dataLaporanPeminjamanTerfilter(Request $request): array
+    {
+        $daftarPeminjaman = $this->ambilDataLaporanPeminjaman($request);
+
+        $filterKategori = in_array($request->input('filter'), ['kuliah', 'organisasi', 'eksternal'])
+            ? $request->input('filter')
+            : 'semua';
+
+        if ($filterKategori !== 'semua') {
+            $daftarPeminjaman = $daftarPeminjaman->filter(function ($p) use ($filterKategori) {
+                return $filterKategori === 'eksternal'
+                    ? $p->jenis_peminjam === 'eksternal'
+                    : $p->kategori === $filterKategori;
+            })->values();
+        }
+
+        $labelFilter = match ($filterKategori) {
+            'kuliah' => 'Kategori Kuliah',
+            'organisasi' => 'Kategori Organisasi',
+            'eksternal' => 'Kategori Eksternal',
+            default => 'Semua Kategori',
+        };
+
+        if ($request->filled('dari_tanggal') || $request->filled('sampai_tanggal')) {
+            $dari = $request->filled('dari_tanggal') ? \Carbon\Carbon::parse($request->dari_tanggal)->format('d/m/Y') : '...';
+            $sampai = $request->filled('sampai_tanggal') ? \Carbon\Carbon::parse($request->sampai_tanggal)->format('d/m/Y') : '...';
+            $labelFilter .= ", {$dari} s.d. {$sampai}";
+        }
+
+        $ringkasanStatus = $this->hitungStatusPeminjaman($daftarPeminjaman);
+
+        return [$daftarPeminjaman, $labelFilter, $ringkasanStatus];
+    }
+
+    // export laporan peminjaman ke PDF, ngikutin filter kategori & tanggal yang lagi aktif di halaman
+    public function laporanExportPdf(Request $request)
+    {
+        [$daftarPeminjaman, $labelFilter, $ringkasanStatus] = $this->dataLaporanPeminjamanTerfilter($request);
+        $judulLaporan = 'Laporan Peminjaman';
+
+        $pdf = Pdf::loadView('peminjaman.laporan-pdf', compact('daftarPeminjaman', 'ringkasanStatus', 'judulLaporan', 'labelFilter'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->stream('laporan-peminjaman-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    // export laporan peminjaman ke Excel, filter sama persis kayak export PDF
+    public function laporanExportExcel(Request $request)
+    {
+        [$daftarPeminjaman, $labelFilter, $ringkasanStatus] = $this->dataLaporanPeminjamanTerfilter($request);
+
+        return Excel::download(
+            new PeminjamanExport($daftarPeminjaman, $labelFilter, $ringkasanStatus),
+            'laporan-peminjaman-' . now()->format('Y-m-d') . '.xlsx'
+        );
+    }
+
     // admin batalin peminjaman yang udah disetujui
     private function batalkanPeminjamanDisetujui(Request $request, Peminjaman $peminjaman, string $kategoriPesan)
     {
@@ -572,7 +640,7 @@ class PeminjamanController extends Controller
             Notifikasi::create([
                 'user_id' => $peminjaman->mahasiswa->user_id,
                 'pesan' => "Peminjaman {$kategoriPesan} kamu dibatalkan oleh Admin TU." . ($request->catatan_admin ? " Alasan: {$request->catatan_admin}" : ''),
-                'link' => route('peminjaman.show', $peminjaman->id, false),
+                'link' => route('peminjaman.show', $peminjaman->id),
             ]);
         }
 
@@ -631,7 +699,7 @@ class PeminjamanController extends Controller
         Notifikasi::create([
             'user_id' => $peminjaman->mahasiswa->user_id,
             'pesan' => 'Peminjaman acara organisasi kamu telah disetujui.',
-            'link' => route('peminjaman.show', $peminjaman->id, false),
+            'link' => route('peminjaman.show', $peminjaman->id),
         ]);
 
         return back()->with('success', "Peminjaman atas nama {$peminjaman->mahasiswa->nama} berhasil disetujui.");
@@ -651,7 +719,7 @@ class PeminjamanController extends Controller
         Notifikasi::create([
             'user_id' => $peminjaman->mahasiswa->user_id,
             'pesan' => 'Peminjaman acara organisasi kamu ditolak.' . ($request->catatan_admin ? " Alasan: {$request->catatan_admin}" : ''),
-            'link' => route('peminjaman.show', $peminjaman->id, false),
+            'link' => route('peminjaman.show', $peminjaman->id),
         ]);
 
         return back()->with('success', "Peminjaman atas nama {$peminjaman->mahasiswa->nama} ditolak.");

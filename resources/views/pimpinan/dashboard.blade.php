@@ -7,28 +7,34 @@
 
     <div class="container-fluid py-4">
 
-        {{-- ringkasan peminjaman --}}
+        {{-- ringkasan peminjaman -- diklik langsung ke menu Peminjaman --}}
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-4">
-                <div class="stat-tile tile-green">
-                    <i class="bi bi-journal-text stat-tile-icon"></i>
-                    <div class="stat-tile-value">{{ $totalPeminjaman }}</div>
-                    <div class="stat-tile-label">Total Peminjaman</div>
-                </div>
+                <a href="{{ route('pimpinan.peminjaman') }}" class="text-decoration-none">
+                    <div class="stat-tile tile-green">
+                        <i class="bi bi-journal-text stat-tile-icon"></i>
+                        <div class="stat-tile-value">{{ $totalPeminjaman }}</div>
+                        <div class="stat-tile-label">Total Peminjaman</div>
+                    </div>
+                </a>
             </div>
             <div class="col-6 col-md-4">
-                <div class="stat-tile tile-blue">
-                    <i class="bi bi-hourglass-split stat-tile-icon"></i>
-                    <div class="stat-tile-value">{{ $peminjamanAktif }}</div>
-                    <div class="stat-tile-label">Peminjaman Aktif</div>
-                </div>
+                <a href="{{ route('pimpinan.peminjaman', ['status' => 'disetujui']) }}" class="text-decoration-none">
+                    <div class="stat-tile tile-blue">
+                        <i class="bi bi-hourglass-split stat-tile-icon"></i>
+                        <div class="stat-tile-value">{{ $peminjamanAktif }}</div>
+                        <div class="stat-tile-label">Peminjaman Aktif</div>
+                    </div>
+                </a>
             </div>
             <div class="col-6 col-md-4">
-                <div class="stat-tile tile-amber">
-                    <i class="bi bi-check2-circle stat-tile-icon"></i>
-                    <div class="stat-tile-value">{{ $selesaiBulanIni }}</div>
-                    <div class="stat-tile-label">Selesai Bulan Ini</div>
-                </div>
+                <a href="{{ route('pimpinan.peminjaman', ['status' => 'selesai']) }}" class="text-decoration-none">
+                    <div class="stat-tile tile-amber">
+                        <i class="bi bi-check2-circle stat-tile-icon"></i>
+                        <div class="stat-tile-value">{{ $selesaiBulanIni }}</div>
+                        <div class="stat-tile-label">Selesai Bulan Ini</div>
+                    </div>
+                </a>
             </div>
         </div>
 
@@ -115,116 +121,6 @@
             </div>
         </div>
 
-        {{-- tren pemakaian proyektor (SMA) --}}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3">🎥 Tren Pemakaian Proyektor per Minggu (SMA)</h6>
-                <div class="chart-box" style="height: 280px;">
-                    <canvas id="chartTrenProyektor"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <hr class="my-4">
-
-        {{-- ringkasan angka aset --}}
-        <h5 class="mb-3">Pemantauan Aset</h5>
-        <div class="row mb-4">
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Ruang Kelas</h6>
-                        <h2 class="fw-bold">{{ $totalKelas }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Mahasiswa</h6>
-                        <h2 class="fw-bold">{{ $totalMahasiswa }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Aset Umum</h6>
-                        <h2 class="fw-bold">{{ $totalAlat }}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-muted">Alat Tersedia</h6>
-                        <h2 class="fw-bold text-success">{{ $alatTersedia }}</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- breakdown status --}}
-        <div class="row mb-4">
-            <div class="col-6 col-md-4 mb-3">
-                <div class="alert alert-warning mb-0 text-center">
-                    Dipinjam: <b>{{ $alatDipinjam }}</b>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 mb-3">
-                <div class="alert alert-danger mb-0 text-center">
-                    Rusak: <b>{{ $alatRusak }}</b>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 mb-3">
-                <div class="alert alert-secondary mb-0 text-center">
-                    Pemeliharaan: <b>{{ $alatPemeliharaan }}</b>
-                </div>
-            </div>
-        </div>
-
-        {{-- tabel detail aset (read-only, gak ada tombol edit/hapus) --}}
-        <div class="card mb-4">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3">Detail Aset Umum</h6>
-                    <table class="table table-bordered mb-0" id="tabelDetailAset">
-                        <thead class="table-light">
-                            <tr>
-                                <th>No</th>
-                                <th>Nama Alat</th>
-                                <th>Kode Aset</th>
-                                <th>Stok</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($daftarAlat as $index => $alat)
-                                @php
-                                    $warnaStatusAlat = match($alat->status_efektif) {
-                                        'tersedia' => 'success',
-                                        'dipinjam' => 'warning',
-                                        'rusak' => 'danger',
-                                        'pemeliharaan' => 'secondary',
-                                        default => 'dark',
-                                    };
-                                @endphp
-                                <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $alat->nama_alat }}</td>
-                                    <td>{{ $alat->kode_aset ?? '-' }}</td>
-                                    <td>{{ $alat->jumlah_stok }}</td>
-                                    <td><span class="badge bg-{{ $warnaStatusAlat }}">{{ ucfirst($alat->status_efektif) }}</span></td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">Belum ada data alat.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-            </div>
-        </div>
-
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -274,47 +170,6 @@
                 }
             });
 
-            const labelMingguProyektor = @json($labelMingguProyektor);
-            const dataJamProyektor = @json($dataJamProyektor);
-            const dataSmaProyektor = @json($dataSmaProyektor);
-            // legend dikecilin manual khusus HP -- di web tetep ukuran normal (bawaan Chart.js)
-            const legendKecil = window.innerWidth <= 576;
-
-            new Chart(document.getElementById('chartTrenProyektor'), {
-                data: {
-                    labels: labelMingguProyektor,
-                    datasets: [
-                        {
-                            type: 'bar',
-                            label: 'Jam Pakai per Minggu (Semua Unit)',
-                            data: dataJamProyektor,
-                            backgroundColor: '#a8d5c2',
-                            borderRadius: 6,
-                            order: 2,
-                        },
-                        {
-                            type: 'line',
-                            label: 'SMA (rata-rata 4 minggu)',
-                            data: dataSmaProyektor,
-                            borderColor: '#0F6B4C',
-                            backgroundColor: '#0F6B4C',
-                            tension: 0.3,
-                            pointRadius: 3,
-                            order: 1,
-                        },
-                    ]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } },
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: legendKecil ? { boxWidth: 12, font: { size: 10 } } : {},
-                        },
-                    },
-                }
-            });
         });
 
         $(function () {
@@ -326,21 +181,6 @@
                 searching: false,
                 info: false,
                 ordering: false,
-            });
-
-            $('#tabelDetailAset').DataTable({
-                responsive: true,
-                pageLength: 5,
-                lengthMenu: [5, 10, 25, 50],
-                language: {
-                    search: "Cari:",
-                    lengthMenu: "Tampilkan _MENU_ data",
-                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
-                    infoEmpty: "Tidak ada data",
-                    paginate: { previous: "Sebelumnya", next: "Selanjutnya" },
-                    zeroRecords: "Tidak ada data yang cocok",
-                    emptyTable: "Belum ada data alat.",
-                }
             });
         });
     </script>

@@ -190,6 +190,10 @@
         let popupNotifikasiSedangTampil = false;
 
         const peranUser = "{{ auth()->user()->role }}";
+        const urlPolaTandaiSatuDibaca = "{{ route('notifikasi.tandai-satu-dibaca', ':id') }}";
+        function urlTandaiSatuDibaca(id) {
+            return urlPolaTandaiSatuDibaca.replace(':id', id);
+        }
 
         function tampilkanPopupNotifikasi(n) {
             // popup gede di tengah cukup buat mahasiswa (misal pengingat telat kembalikan barang).
@@ -218,7 +222,7 @@
                 popupNotifikasiSedangTampil = false;
 
                 if (result.isConfirmed && n.link) {
-                    fetch(`/notifikasi/${n.id}/tandai-dibaca`, {
+                    fetch(urlTandaiSatuDibaca(n.id), {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': csrfToken() },
                     });
@@ -313,7 +317,7 @@
             const item = e.target.closest('.notif-item');
             if (!item || !item.classList.contains('notif-item-belum-dibaca')) return;
 
-            fetch(`/notifikasi/${item.dataset.id}/tandai-dibaca`, {
+            fetch(urlTandaiSatuDibaca(item.dataset.id), {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': csrfToken() },
             });
@@ -328,7 +332,16 @@
         });
 
         ambilNotifikasi();
-        setInterval(ambilNotifikasi, 1000);
+        const idIntervalNotifikasi = setInterval(ambilNotifikasi, 1000);
+
+        // begitu ada form disubmit (ajukan peminjaman, dll), stop dulu polling notifikasi ini.
+        // soalnya kalau polling masih jalan bareng request submit yang lagi redirect, session bisa balapan
+        // nyimpen -- polling yang selesainya belakangan bisa nimpa balik flash "berhasil"/"struk" punya
+        // request submit tadi jadi kosong lagi, makanya kadang abis ajukan peminjaman notifikasi/pop-up
+        // berhasilnya gak muncul padahal datanya sendiri udah beneran kesimpen.
+        document.addEventListener('submit', function () {
+            clearInterval(idIntervalNotifikasi);
+        }, true);
     </script>
 </body>
 

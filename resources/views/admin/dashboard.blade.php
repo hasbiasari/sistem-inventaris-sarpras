@@ -10,34 +10,40 @@
         {{-- ringkasan utama --}}
         <div class="row g-3 mb-3">
             <div class="col-6 col-md-3">
-                <div class="card"><div class="card-body stat-card-v2">
-                    <div class="stat-icon-circle bg-total">👥</div>
-                    <div>
-                        <div class="stat-angka">{{ $totalMahasiswa }}</div>
-                        <div class="stat-label">Total Mahasiswa</div>
-                    </div>
-                </div></div>
+                <a href="{{ route('admin.mahasiswa') }}" class="text-decoration-none">
+                    <div class="card"><div class="card-body stat-card-v2">
+                        <div class="stat-icon-circle bg-total">👥</div>
+                        <div>
+                            <div class="stat-angka">{{ $totalMahasiswa }}</div>
+                            <div class="stat-label">Total Mahasiswa</div>
+                        </div>
+                    </div></div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card"><div class="card-body stat-card-v2">
-                    <div class="stat-icon-circle bg-info">🏫</div>
-                    <div>
-                        <div class="stat-angka">{{ $totalAsetKelas }}</div>
-                        <div class="stat-label">Total Aset Kelas</div>
-                    </div>
-                </div></div>
+                <a href="{{ route('admin.aset-kelas') }}" class="text-decoration-none">
+                    <div class="card"><div class="card-body stat-card-v2">
+                        <div class="stat-icon-circle bg-info">🏫</div>
+                        <div>
+                            <div class="stat-angka">{{ $totalAsetKelas }}</div>
+                            <div class="stat-label">Total Aset Kelas</div>
+                        </div>
+                    </div></div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card"><div class="card-body stat-card-v2">
-                    <div class="stat-icon-circle bg-disetujui">🎒</div>
-                    <div>
-                        <div class="stat-angka">{{ $totalAsetUmum }}</div>
-                        <div class="stat-label">Total Aset Umum</div>
-                    </div>
-                </div></div>
+                <a href="{{ route('admin.aset-umum') }}" class="text-decoration-none">
+                    <div class="card"><div class="card-body stat-card-v2">
+                        <div class="stat-icon-circle bg-disetujui">🎒</div>
+                        <div>
+                            <div class="stat-angka">{{ $totalAsetUmum }}</div>
+                            <div class="stat-label">Total Aset Umum</div>
+                        </div>
+                    </div></div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi']) }}" class="text-decoration-none">
+                <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'status' => 'menunggu']) }}" class="text-decoration-none">
                     <div class="card border-warning-subtle"><div class="card-body stat-card-v2">
                         <div class="stat-icon-circle bg-menunggu">⏳</div>
                         <div>
@@ -86,7 +92,7 @@
         <div class="card mb-4">
             <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h6 class="fw-bold mb-0">📋 Perlu Tindakan &mdash; Pengajuan Peminjaman Organisasi</h6>
-                <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi']) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'status' => 'menunggu']) }}" class="btn btn-sm btn-outline-primary">
                     Lihat Semua
                 </a>
             </div>
@@ -103,7 +109,7 @@
                         </div>
                         <div class="text-end">
                             <div class="small text-muted mb-1">{{ $peminjaman->created_at->format('d/m/Y H:i') }}</div>
-                            <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi']) }}" class="btn btn-sm btn-warning">Proses</a>
+                            <a href="{{ route('admin.peminjaman.laporan', ['filter' => 'organisasi', 'status' => 'menunggu']) }}" class="btn btn-sm btn-warning">Proses</a>
                         </div>
                     </div>
                 @empty

@@ -6,17 +6,22 @@
     <div class="container-fluid py-4">
 
         @if ($errors->any())
-            <div class="alert alert-danger">
+            <div class="alert alert-danger" id="alert-error-validasi">
                 @foreach ($errors->all() as $error)
                     <div>{{ $error }}</div>
                 @endforeach
             </div>
+            <script>
+                window.addEventListener('DOMContentLoaded', function () {
+                    document.getElementById('alert-error-validasi').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            </script>
         @endif
 
         <div class="card">
             <div class="card-body">
 
-                <form action="{{ route('peminjaman.update', $peminjaman->id) }}" method="POST" enctype="multipart/form-data">
+                <form id="form-peminjaman" action="{{ route('peminjaman.update', $peminjaman->id) }}" method="POST" enctype="multipart/form-data" novalidate>
                     @csrf
                     @method('PUT')
 
@@ -41,17 +46,20 @@
                             <div class="mb-3">
                                 <label class="form-label">Kelas</label>
                                 <input type="text" name="kelas" class="form-control" placeholder="contoh: IF-VIII-A" value="{{ old('kelas', $peminjaman->kelas) }}" required>
+                                <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                             </div>
 
                             @if ($peminjaman->kategori === 'organisasi')
                                 <div class="mb-3">
                                     <label class="form-label">Nama ORMAWA</label>
                                     <input type="text" name="ormawa" class="form-control" placeholder="contoh: HMIF" value="{{ old('ormawa', $peminjaman->ormawa) }}" required>
+                                    <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Nama Kegiatan</label>
                                     <input type="text" name="nama_kegiatan" class="form-control" placeholder="contoh: Rapat Kerja HMIF" value="{{ old('nama_kegiatan', $peminjaman->nama_kegiatan) }}" required>
+                                    <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                                 </div>
                             @endif
 
@@ -59,7 +67,7 @@
                                 <label class="form-label fw-bold"><i class="bi bi-calendar-week"></i> Tanggal & Jam Peminjaman</label>
                                 <div class="row g-2 mb-2">
                                     <div class="col-md-7">
-                                        <label class="form-label small text-muted mb-1">Pilih Ruangan <span class="fw-normal">(opsional)</span></label>
+                                        <label class="form-label small text-muted mb-1">Pilih Ruangan</label>
                                         <select name="aset_kelas_id" id="input-ruangan" class="form-select">
                                             <option value="">-- Tidak pakai ruangan --</option>
                                             @foreach ($daftarRuangan as $ruangan)
@@ -72,6 +80,7 @@
                                         <input type="date" name="tanggal_pakai" id="input-tanggal-pakai" class="form-control" required
                                                min="{{ now()->toDateString() }}"
                                                value="{{ $peminjaman->tanggal_pakai?->toDateString() ?? now()->toDateString() }}">
+                                        <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                                     </div>
                                 </div>
                                 @if ($peminjaman->kategori === 'organisasi')
@@ -88,10 +97,12 @@
                                     <div class="col-md-6">
                                         <label class="form-label small text-muted mb-1">Jam Mulai</label>
                                         <input type="time" name="jam_mulai" id="input-jam-mulai" class="form-control" required value="{{ $peminjaman->jam_mulai ? substr($peminjaman->jam_mulai, 0, 5) : '' }}">
+                                        <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small text-muted mb-1">Jam Selesai</label>
                                         <input type="time" name="jam_selesai" id="input-jam-selesai" class="form-control" required value="{{ $peminjaman->jam_selesai ? substr($peminjaman->jam_selesai, 0, 5) : '' }}">
+                                        <div class="small text-danger d-none pesan-wajib-diisi">Harap isi bidang ini.</div>
                                     </div>
                                 </div>
                                 <div id="peringatan-ruangan-bentrok" class="alert alert-danger py-2 px-3 mt-2 mb-0 small d-none">
@@ -370,7 +381,44 @@
             });
         });
 
-        document.querySelector('form').addEventListener('submit', function (e) {
+        // kasih tanda merah (border + keterangan "Harap isi bidang ini") di SEMUA bidang wajib yang masih kosong,
+        // bukan cuma yang pertama -- ilang otomatis begitu bidangnya udah diisi bener
+        function tandaiSemuaBidangKosong(form) {
+            const bidangInvalid = Array.from(form.querySelectorAll(':invalid'));
+
+            bidangInvalid.forEach(function (bidang) {
+                bidang.classList.add('border-danger');
+                const pesan = bidang.nextElementSibling;
+                if (pesan && pesan.classList.contains('pesan-wajib-diisi')) {
+                    pesan.classList.remove('d-none');
+                }
+
+                const bersihkanKalauUdahBener = function () {
+                    if (!bidang.checkValidity()) return;
+                    bidang.classList.remove('border-danger');
+                    if (pesan) pesan.classList.add('d-none');
+                    bidang.removeEventListener('input', bersihkanKalauUdahBener);
+                    bidang.removeEventListener('change', bersihkanKalauUdahBener);
+                };
+                bidang.addEventListener('input', bersihkanKalauUdahBener);
+                bidang.addEventListener('change', bersihkanKalauUdahBener);
+            });
+
+            return bidangInvalid;
+        }
+
+        document.getElementById('form-peminjaman').addEventListener('submit', function (e) {
+            // bidang wajib yang kelewat keisi -> auto-scroll + fokus ke yang pertama, sekalian tandain semua yang masih kosong
+            if (!this.checkValidity()) {
+                e.preventDefault();
+                const bidangKosong = tandaiSemuaBidangKosong(this);
+                if (bidangKosong[0]) {
+                    bidangKosong[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    bidangKosong[0].focus({ preventScroll: true });
+                }
+                return;
+            }
+
             const pakaiRuangan = document.getElementById('input-ruangan').value !== '';
             if (barangDipilih.length === 0 && !pakaiRuangan) {
                 e.preventDefault();

@@ -1,8 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Laporan Peminjaman
-        </h2>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight mb-0">
+                Laporan Peminjaman
+            </h2>
+            <div class="dropdown">
+                <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" id="btnExportPdf"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> PDF</a></li>
+                    <li><a class="dropdown-item" href="#" id="btnExportExcel"><i class="bi bi-file-earmark-excel-fill text-success"></i> Excel</a></li>
+                </ul>
+            </div>
+        </div>
     </x-slot>
 
     <div class="container-fluid py-4">
@@ -10,6 +21,12 @@
         @if (session('success'))
             <div class="alert alert-success">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
             </div>
         @endif
 
@@ -104,6 +121,15 @@
             </div>
         </div>
 
+        <div class="card mb-4 d-none" id="cardFilterStatus">
+            <div class="card-body alert alert-info d-flex justify-content-between align-items-center mb-0">
+                <span id="pesanFilterStatus"></span>
+                <a href="{{ route('admin.peminjaman.laporan') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Reset Filter
+                </a>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-body">
                     <table class="table table-bordered" id="tabelLaporan">
@@ -142,7 +168,7 @@
                                         default => 'secondary',
                                     };
                                 @endphp
-                                <tr data-kategori="{{ $kategoriFilter }}">
+                                <tr data-kategori="{{ $kategoriFilter }}" data-status="{{ $peminjaman->status }}">
                                     <td>{{ $index + 1 }}</td>
                                     <td>{{ $peminjaman->nama_peminjam }}</td>
                                     <td><span class="badge bg-{{ $warnaKategori }}">{{ ucfirst($kategoriFilter) }}</span></td>
@@ -168,7 +194,7 @@
                                     <td><span class="badge bg-{{ $warnaBadge }}">{{ $labelStatus }}</span></td>
                                     <td>
                                         <div class="d-flex gap-1">
-                                            @if ($kategoriFilter === 'organisasi' && $peminjaman->status === 'menunggu')
+                                            @if (auth()->user()->role === 'admin_tu' && $kategoriFilter === 'organisasi' && $peminjaman->status === 'menunggu')
                                                 <form method="POST" action="{{ route('admin.peminjaman.organisasi.setujui', $peminjaman->id) }}" class="d-inline form-setujui">
                                                     @csrf
                                                     @method('PATCH')
@@ -186,7 +212,7 @@
                                                 </form>
                                             @endif
 
-                                            @if (in_array($kategoriFilter, ['kuliah', 'organisasi']) && $peminjaman->status === 'disetujui')
+                                            @if (auth()->user()->role === 'admin_tu' && in_array($kategoriFilter, ['kuliah', 'organisasi']) && $peminjaman->status === 'disetujui')
                                                 <form method="POST" action="{{ route('admin.peminjaman.' . $kategoriFilter . '.batalkan', $peminjaman->id) }}" class="d-inline form-batalkan">
                                                     @csrf
                                                     @method('PATCH')
@@ -361,6 +387,15 @@
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 order: [],
+                // nomor urut "No" dihitung ulang tiap kali tabel digambar ulang (filter kategori/search/pindah halaman),
+                // bukan angka statis dari server -- biar gak lompat-lompat pas sebagian baris kefilter/kesembunyiin
+                drawCallback: function () {
+                    const api = this.api();
+                    const mulaiDariBaris = api.context[0]._iDisplayStart;
+                    api.column(0, { page: 'current' }).nodes().each(function (cell, i) {
+                        cell.innerHTML = mulaiDariBaris + i + 1;
+                    });
+                },
                 language: {
                     search: "Cari:",
                     lengthMenu: "Tampilkan _MENU_ data",
@@ -390,15 +425,24 @@
 
             // filter awal bisa datang dari link luar (dashboard/notifikasi), misal ?filter=organisasi
             let filterAktif = @json($filterAwal);
+            // status juga bisa datang dari link luar, misal ?status=menunggu dari kartu "Peminjaman Organisasi Menunggu"
+            const filterStatusDariUrl = new URLSearchParams(window.location.search).get('status');
+            const labelFilterStatus = { menunggu: 'Menunggu', disetujui: 'Disetujui', ditolak: 'Ditolak', dibatalkan: 'Dibatalkan', selesai: 'Selesai / Dikembalikan' };
+
             $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-                if (filterAktif === 'semua') return true;
                 const baris = table.row(dataIndex).node();
-                return $(baris).data('kategori') === filterAktif;
+                if (filterAktif !== 'semua' && $(baris).data('kategori') !== filterAktif) return false;
+                if (filterStatusDariUrl && $(baris).data('status') !== filterStatusDariUrl) return false;
+                return true;
             });
             updateKolomKategori(filterAktif);
             table.draw();
             if (filterAktif !== 'semua') {
                 renderChartDistribusi(filterAktif);
+            }
+            if (filterStatusDariUrl && labelFilterStatus[filterStatusDariUrl]) {
+                $('#cardFilterStatus').removeClass('d-none');
+                $('#pesanFilterStatus').text('Menampilkan hanya peminjaman berstatus: ' + labelFilterStatus[filterStatusDariUrl]);
             }
 
             // dari notifikasi ("barang telah dikembalikan") -> langsung lompat ke halaman & buka detailnya
@@ -421,6 +465,13 @@
                         if (modalEl) new bootstrap.Modal(modalEl).show();
                     }, 100);
                 }
+
+                // bersihin "?highlight=" dari URL abis dipakai sekali -- kalau gak dibersihin, tiap kali halaman
+                // reload (misal abis approve/tolak peminjaman lain di halaman ini), modal yang sama kebuka lagi
+                // terus-terusan padahal udah kelar ditindaklanjuti, jadi ngalangin
+                const urlBersih = new URL(window.location.href);
+                urlBersih.searchParams.delete('highlight');
+                history.replaceState({}, '', urlBersih);
             }
 
             $('.btn-filter-kategori').on('click', function () {
@@ -430,6 +481,26 @@
                 updateKolomKategori(filterAktif);
                 table.draw();
                 renderChartDistribusi(filterAktif);
+
+                // simpen tab kategori yang lagi dipilih ke URL, biar gak balik ke "Semua" kalau halaman
+                // ke-reload gara-gara aksi setujui/tolak/batalkan (yang redirect balik ke URL saat ini)
+                const urlFilter = new URL(window.location.href);
+                if (filterAktif === 'semua') {
+                    urlFilter.searchParams.delete('filter');
+                } else {
+                    urlFilter.searchParams.set('filter', filterAktif);
+                }
+                history.replaceState({}, '', urlFilter);
+            });
+
+            // export ngikutin filter kategori & tanggal yang lagi aktif di URL saat ini
+            document.getElementById('btnExportPdf').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.open("{{ route('admin.peminjaman.laporan.export-pdf') }}" + window.location.search, '_blank');
+            });
+            document.getElementById('btnExportExcel').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.open("{{ route('admin.peminjaman.laporan.export-excel') }}" + window.location.search, '_blank');
             });
         });
 
